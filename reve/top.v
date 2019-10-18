@@ -70,6 +70,7 @@ module top
     reg [13:0]dmem_address;
     reg dmem_read_not_write;
     reg dmem_select;
+    reg dmem_select_last;
     reg [31:0]last_imem_mem_read_data;
     reg riscv_clk_cycle_2;
     reg riscv_clk_cycle_1;
@@ -384,6 +385,7 @@ module top
     assign riscv_clk__enable = (clk__enable && riscv_clk_cycle_2);
     assign jtag_tck_gated__enable = (jtag_tck__enable && tck_enable_fix);
     //b Module instances
+    /*
     se_sram_srw_16384x32 imem(
         .sram_clock(clk),
         .sram_clock__enable(1'b1),
@@ -402,6 +404,25 @@ module top
         .read_not_write(dmem_read_not_write),
         .select(dmem_select),
         .data_out(            main_mem_read_data)         );
+    */
+    se_sram_mrw_2 #(.address_width(16),.data_width(32)) 
+    mem(
+    .sram_clock_0(clk),
+    .sram_clock_0__enable(1'b1),
+    .write_data_0(32'h0),
+    .address_0(imem_access_req__address[15:2]),
+    .read_not_write_0(1'h1),
+    .select_0(((imem_access_req__req_type!=3'h0) & ((riscv_clk_cycle_0!=1'h0)||(riscv_clk_cycle_1!=1'h0)))),
+    .data_out_0(imem_mem_read_data),
+    .sram_clock_1(clk),
+    .sram_clock_1__enable(1'b1),
+    .write_data_1(dmem_write_data),
+    .address_1(dmem_address),
+    .read_not_write_1(dmem_read_not_write),
+    .select_1(dmem_select),
+    .data_out_1(main_mem_read_data)
+    
+    );
     /*se_test_harness th(
         .clk(jtag_tck),
         .clk__enable(1'b1),
@@ -1441,5 +1462,17 @@ module top
         riscv_config__debug_enable = riscv_config__debug_enable__var;
         riscv_config__coproc_disable = riscv_config__coproc_disable__var;
     end //always
-
+   
+     always @(posedge clk or negedge reset_n) begin 
+		if (reset_n==1'b0)
+        begin
+            dmem_select_last<=1'b0;
+        end
+        else begin
+        if ((dmem_address == 14'h800) && dmem_select && !dmem_read_not_write && !dmem_select_last) begin            
+			$write("%c", dmem_write_data[7:0]);
+		end
+        dmem_select_last <= dmem_select;
+        end
+	end 
 endmodule // tb_riscv_i32mc_pipeline3

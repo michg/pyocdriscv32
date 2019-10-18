@@ -1,0 +1,8 @@
+apb_uart_sv:
+  files: [
+    apb_uart_sv.sv,
+    uart_rx.sv,
+    uart_tx.sv,
+    io_generic_fifo.sv,
+    uart_interrupt.sv,
+  ]

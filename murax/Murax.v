@@ -1,5 +1,5 @@
 // Generator : SpinalHDL v1.3.1    git head : 9fe87c98746a5306cb1d5a828db7af3137723649
-// Date      : 01/04/2019, 16:42:13
+// Date      : 16/10/2019, 12:06:45
 // Component : Murax
 
 
@@ -4461,19 +4461,19 @@ module MuraxPipelinedMemoryBusRam (
       input   toplevel_io_mainClk,
       input   toplevel_resetCtrl_systemReset);
   reg [31:0] _zz_4_;
-  wire [10:0] _zz_5_;
+  wire [15:0] _zz_5_;
   reg  _zz_1_;
   wire [29:0] _zz_2_;
   wire [31:0] _zz_3_;
-  reg [7:0] ram_symbol0 [0:2047];
-  reg [7:0] ram_symbol1 [0:2047];
-  reg [7:0] ram_symbol2 [0:2047];
-  reg [7:0] ram_symbol3 [0:2047];
+  reg [7:0] ram_symbol0 [0:49151];
+  reg [7:0] ram_symbol1 [0:49151];
+  reg [7:0] ram_symbol2 [0:49151];
+  reg [7:0] ram_symbol3 [0:49151];
   reg [7:0] _zz_6_;
   reg [7:0] _zz_7_;
   reg [7:0] _zz_8_;
   reg [7:0] _zz_9_;
-  assign _zz_5_ = _zz_2_[10:0];
+  assign _zz_5_ = _zz_2_[15:0];
   always @ (*) begin
     _zz_4_ = {_zz_9_, _zz_8_, _zz_7_, _zz_6_};
   end
@@ -4771,7 +4771,7 @@ module Apb3UartCtrl (
   function [19:0] zz_bridge_uartConfigReg_clockDivider(input dummy);
     begin
       zz_bridge_uartConfigReg_clockDivider = (20'b00000000000000000000);
-      zz_bridge_uartConfigReg_clockDivider = (20'b00000000000000010011);
+      zz_bridge_uartConfigReg_clockDivider = (20'b00000000000001010101);
     end
   endfunction
   wire [19:0] _zz_9_;
@@ -5404,7 +5404,6 @@ module Murax (
   wire  _zz_13_;
   wire  _zz_14_;
   wire [31:0] _zz_15_;
-  wire [31:0] _zz_16_;
   reg  resetCtrl_mainClkResetUnbuffered;
   reg [5:0] resetCtrl_systemClkResetCounter = (6'b000000);
   wire [5:0] _zz_1_;
@@ -5444,8 +5443,7 @@ module Murax (
   reg [0:0] system_mainBusDecoder_logic_rspSourceId;
   assign _zz_13_ = (resetCtrl_systemClkResetCounter != _zz_1_);
   assign _zz_14_ = (! system_cpu_dBus_cmd_halfPipe_regs_valid);
-  assign _zz_15_ = (32'b11111111111111111110000000000000);
-  assign _zz_16_ = (32'b11111111111100000000000000000000);
+  assign _zz_15_ = (32'b11111111111100000000000000000000);
   BufferCC_2_ bufferCC_3_ ( 
     .io_dataIn(io_asyncReset),
     .io_dataOut(bufferCC_3__io_dataOut),
@@ -5724,7 +5722,7 @@ module Murax (
   assign system_mainBusDecoder_logic_masterPipelined_cmd_payload_address = system_mainBusArbiter_io_masterBus_cmd_payload_address;
   assign system_mainBusDecoder_logic_masterPipelined_cmd_payload_data = system_mainBusArbiter_io_masterBus_cmd_payload_data;
   assign system_mainBusDecoder_logic_masterPipelined_cmd_payload_mask = system_mainBusArbiter_io_masterBus_cmd_payload_mask;
-  assign system_mainBusDecoder_logic_hits_0 = ((system_mainBusDecoder_logic_masterPipelined_cmd_payload_address & _zz_15_) == (32'b10000000000000000000000000000000));
+  assign system_mainBusDecoder_logic_hits_0 = (((32'b10000000000000000000000000000000) <= system_mainBusDecoder_logic_masterPipelined_cmd_payload_address) && (system_mainBusDecoder_logic_masterPipelined_cmd_payload_address < (32'b10000000000000110000000000000000)));
   always @ (*) begin
     _zz_6_ = (system_mainBusDecoder_logic_masterPipelined_cmd_valid && system_mainBusDecoder_logic_hits_0);
     _zz_7_ = (system_mainBusDecoder_logic_masterPipelined_cmd_valid && system_mainBusDecoder_logic_hits_1);
@@ -5737,7 +5735,7 @@ module Murax (
   end
 
   assign _zz_3_ = system_mainBusDecoder_logic_masterPipelined_cmd_payload_write;
-  assign system_mainBusDecoder_logic_hits_1 = ((system_mainBusDecoder_logic_masterPipelined_cmd_payload_address & _zz_16_) == (32'b11110000000000000000000000000000));
+  assign system_mainBusDecoder_logic_hits_1 = ((system_mainBusDecoder_logic_masterPipelined_cmd_payload_address & _zz_15_) == (32'b11110000000000000000000000000000));
   assign _zz_4_ = system_mainBusDecoder_logic_masterPipelined_cmd_payload_write;
   assign system_mainBusDecoder_logic_noHit = (! ({system_mainBusDecoder_logic_hits_1,system_mainBusDecoder_logic_hits_0} != (2'b00)));
   assign system_mainBusDecoder_logic_masterPipelined_rsp_valid = (({system_apbBridge_io_pipelinedMemoryBus_rsp_valid,system_ram_io_bus_rsp_valid} != (2'b00)) || (system_mainBusDecoder_logic_rspPending && system_mainBusDecoder_logic_rspNoHit));

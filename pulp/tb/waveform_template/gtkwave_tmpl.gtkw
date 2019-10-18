@@ -1,0 +1,100 @@
+[*]
+[*] GTKWave Analyzer v3.3.98 (w)1999-2019 BSI
+[*] Fri Oct 11 18:42:55 2019
+[*]
+[dumpfile] "/tmp/riscv_soc.vcd"
+[dumpfile_mtime] "Fri Oct 11 18:30:58 2019"
+[dumpfile_size] 7176617
+[optimize_vcd]
+[savefile] "/home/aignacio/projects/riscv_verilator_model/tb/waveform_template/gtkwave_tmpl.gtkw"
+[timestart] 1
+[size] 1920 1016
+[pos] 1920 27
+*-3.224949 18 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[treeopen] TOP.riscv_soc.
+[treeopen] TOP.riscv_soc.data_ram.ram_inst.
+[treeopen] TOP.riscv_soc.data_ram.ram_inst.genblk2.
+[treeopen] TOP.riscv_soc.data_ram.ram_inst.genblk2.genblk2.
+[treeopen] TOP.riscv_soc.instr_ram.ram_inst.
+[treeopen] TOP.riscv_soc.instr_ram.ram_inst.genblk2.
+[treeopen] TOP.riscv_soc.instr_ram.ram_inst.genblk2.genblk2.
+[treeopen] TOP.riscv_soc.riscv_cpu.
+[treeopen] TOP.riscv_soc.riscv_cpu.riscv_core_i.id_stage_i.
+[treeopen] TOP.riscv_soc.riscv_cpu.riscv_core_i.id_stage_i.registers_i.
+[sst_width] 228
+[signals_width] 268
+[sst_expanded] 1
+[sst_vpaned_height] 420
+@28
+TOP.riscv_soc.dm_debug_req[0]
+TOP.riscv_soc.ndmreset_n
+TOP.riscv_soc.reset_n
+@22
+TOP.riscv_soc.riscv_cpu.boot_addr_i[31:0]
+TOP.riscv_soc.riscv_cpu.riscv_core_i.id_stage_i.instr[31:0]
+TOP.riscv_soc.riscv_cpu.riscv_core_i.id_stage_i.pc_id_i[31:0]
+@800200
+-instr_ahb
+@22
+TOP.riscv_soc.riscv_cpu.instr_haddr_o[31:0]
+@28
+TOP.riscv_soc.riscv_cpu.instr_hburst_o[2:0]
+TOP.riscv_soc.riscv_cpu.instr_hmastlock_o
+@22
+TOP.riscv_soc.riscv_cpu.instr_hprot_o[3:0]
+TOP.riscv_soc.riscv_cpu.instr_hrdata_i[31:0]
+@28
+TOP.riscv_soc.riscv_cpu.instr_hready_o
+TOP.riscv_soc.riscv_cpu.instr_hreadyout_i
+TOP.riscv_soc.riscv_cpu.instr_hresp_i
+[color] 2
+TOP.riscv_soc.riscv_cpu.instr_hsel_o
+@2024
+^1 /home/aignacio/projects/riscv_verilator_model/tb/waveform_template/ahb_size.tmpl
+TOP.riscv_soc.riscv_cpu.instr_hsize_o[2:0]
+@28
+TOP.riscv_soc.riscv_cpu.instr_htrans_o[1:0]
+@22
+TOP.riscv_soc.riscv_cpu.instr_hwdata_o[31:0]
+@28
+TOP.riscv_soc.riscv_cpu.instr_hwrite_o
+@1000200
+-instr_ahb
+@800200
+-data_ahb
+@22
+TOP.riscv_soc.riscv_cpu.data_haddr_o[31:0]
+@28
+TOP.riscv_soc.riscv_cpu.data_hburst_o[2:0]
+TOP.riscv_soc.riscv_cpu.data_hmastlock_o
+@22
+TOP.riscv_soc.riscv_cpu.data_hprot_o[3:0]
+TOP.riscv_soc.riscv_cpu.data_hrdata_i[31:0]
+@28
+TOP.riscv_soc.riscv_cpu.data_hready_o
+TOP.riscv_soc.riscv_cpu.data_hreadyout_i
+TOP.riscv_soc.riscv_cpu.data_hresp_i
+[color] 2
+TOP.riscv_soc.riscv_cpu.data_hsel_o
+@2024
+^1 /home/aignacio/projects/riscv_verilator_model/tb/waveform_template/ahb_size.tmpl
+TOP.riscv_soc.riscv_cpu.data_hsize_o[2:0]
+@28
+TOP.riscv_soc.riscv_cpu.data_htrans_o[1:0]
+@22
+TOP.riscv_soc.riscv_cpu.data_hwdata_o[31:0]
+@28
+TOP.riscv_soc.riscv_cpu.data_hwrite_o
+@1000200
+-data_ahb
+@28
+TOP.riscv_soc.riscv_cpu.ahb_instr_filter.en_addr[5:0]
+TOP.riscv_soc.riscv_cpu.ahb_data_filter.en_addr[5:0]
+@29
+TOP.riscv_soc.riscv_cpu.instr_ahb.hreadyout_i
+@28
+TOP.riscv_soc.riscv_cpu.instr_ahb.req_i
+TOP.riscv_soc.riscv_cpu.instr_ahb.gnt_o
+[pattern_trace] 1
+[pattern_trace] 0

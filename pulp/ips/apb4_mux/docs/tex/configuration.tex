@@ -1,0 +1,38 @@
+\chapter{Configurations} \label{configurations}
+
+\section{Introduction} \label{introduction-1}
+
+The Roa Logic APB4 Multiplexer is a fully configurable interconnect IP to
+enable an APB4 Master to communicate with multiple APB4 slaves (i.e.
+peripherals). The core parameters and configuration options are
+described below.
+
+\begin{longtable}[]{@{}lccl@{}}
+	\toprule
+	  Parameter   & Type    & Default & Description\tabularnewline
+	\midrule
+	\endhead
+	  \texttt{SLAVES}      & Integer & 8 & Number of attached slaves (peripherals)\tabularnewline
+	  \texttt{PADDR\_SIZE} & Integer & 8 & Address Bus Width\tabularnewline
+	  \texttt{PDATA\_SIZE} & Integer & 8 & Read Data Bus Width\tabularnewline
+	\bottomrule
+	\caption{Core Parameters}
+\end{longtable}
+
+\subsection{SLAVES} \label{slaves}
+
+The \texttt{SLAVES} parameter specifies the number of slaves (i.e. peripherals)
+the APB4 Multiplexer will support.
+
+\subsection{PADDR\_SIZE} \label{paddr_size}
+
+The \texttt{PADDR\_SIZE} parameter specifies the width of the address bus for the
+APB4 Interfaces. The Master and all peripherals sharing the APB4
+Multiplexer are expected to have the same address width.
+
+\subsection{PDATA\_SIZE} \label{pdata_size}
+
+The \texttt{PDATA\_SIZE} parameter specifies the width of the APB4 data bus. This
+parameter must equal an integer multiple of bytes. The Master and all
+peripherals sharing the APB4 Multiplexer are expected to have the same
+data width.

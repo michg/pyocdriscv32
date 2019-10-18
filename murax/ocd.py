@@ -44,6 +44,9 @@ class MuraxOCD:
     def halt(self):
         self.writecmd(0, 1<<MuraxOCD.HALTREQBIT, 2, 1)
     
+    def resume(self):
+        self.writecmd(0, 1<<MuraxOCD.HALTRELEASEBIT, 2, 1)
+    
     def reset(self):
         self.writecmd(0, 1<<MuraxOCD.RESETREQBIT, 2, 1)
     
@@ -112,3 +115,7 @@ class MuraxOCD:
         val = self.readrsp(4)
         return val
  
+    def setpc(self, val):
+        self.writereg(1, val)
+        opcode = (1 << 15) +  0x67 #JALR x1
+        self.pushins(opcode)

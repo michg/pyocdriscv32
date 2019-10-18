@@ -66,7 +66,7 @@ class ReveOCD:
         self._engine.go_idle()
         self.writeapb(ReveOCD.DMCONTROLREG, (0<<ReveOCD.HALTREQBIT) + 1<<ReveOCD.ACTIVEBIT) 
         
-    def resume():
+    def resume(self):
         self.writeapb(ReveOCD.DMCONTROLREG, (1<<ReveOCD.RESUMEREQBIT) + 1<<ReveOCD.ACTIVEBIT)
         self._engine.go_idle()
         self.writeapb(ReveOCD.DMCONTROLREG, (0<<ReveOCD.RESUMEREQBIT) + 1<<ReveOCD.ACTIVEBIT) 
@@ -97,6 +97,7 @@ class ReveOCD:
             self.pushins(opcode)
             opcode =  ((val & 0xfff) << 20) + (regnr << 15) + (regnr << 7) +  0x13 #ADDI
             self.pushins(opcode)  
+    
     def writemem(self, adr, val):
         regdst = 1
         if inrange(val, 12):
@@ -142,4 +143,9 @@ class ReveOCD:
         self._engine.go_idle()
         val = self.readreg(1)
         return val
+    
+    def setpc(self, val):
+        self.writereg(1, val)
+        opcode = (1 << 15) +  0x67 #JALR x1
+        self.pushins(opcode) 
     

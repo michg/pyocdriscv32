@@ -1,0 +1,6 @@
+docs/build
+*.sublime-project
+*.sublime-workspace
+*.html
+_site
+.jekyll-metadata

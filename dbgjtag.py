@@ -8,20 +8,21 @@ from pyftdi.ftdi import Ftdi
 from pyftdi.bits import BitSequence 
 from pyftdi.jtag import JtagStateMachine, JtagTool
 from murax.ocd import MuraxOCD
-from pulpissimo.ocd import PulpOCD
+from pulp.ocd import PulpOCD
 from reve.ocd import ReveOCD
 from collections import namedtuple
 from sys import argv
+import struct
 
 def inrange(value, bits):    
     upper_limit = 1 << (bits - 1)
     lower_limit = -(1 << (bits - 1))
     return value in range(lower_limit, upper_limit)  
 
-Archdata = namedtuple('Archdata', ['Ocd', 'membaseadr']) 
-Muraxdata = Archdata(MuraxOCD, 0x80000000)
-Pulpdata = Archdata(PulpOCD, 0x1c000000)
-Revedata = Archdata(ReveOCD, 0x00000000)
+Archdata = namedtuple('Archdata', ['Ocd', 'membaseadr','bootofs']) 
+Muraxdata = Archdata(MuraxOCD, 0x80000000, 0)
+Pulpdata = Archdata(PulpOCD, 0x30000000, 0x80) # 1C//3=tbnew2
+Revedata = Archdata(ReveOCD, 0x00000000, 0)
 
 archmap = {
     'murax': Muraxdata,
@@ -204,7 +205,11 @@ class JtagSimEngine:
             self._sm.handle_events(bs)
         return self._ctrl.shift_register(length)
 
-    
+def loadbinary(filename, startadr):
+    with open(filename, "rb") as f:
+        bindata = f.read() 
+    for i in range(len(bindata) // 4):       
+        ocd.writemem(startadr + i*4, struct.unpack('<I',bindata[i*4:(i+1)*4])[0])
         
 if __name__ == '__main__':
     engine = JtagSimEngine()
@@ -223,11 +228,19 @@ if __name__ == '__main__':
     ocd.resetdm() 
     ocd.halt()
     ocd.writereg(5, 0x12345678)
+    ocd.writereg(4, 0x87654321)
+    time.sleep(0.5)
     val = ocd.readreg(5);
-    print("REG5:%08x" %val)    
+    print("REG5:%08x" %val) 
+    val = ocd.readreg(4);
+    print("REG4:%08x" %val)     
     ocd.writemem(memadr,0xabcdefbc)
     val = ocd.readmem(memadr)
     print("MEM:%08x" %val)
+    loadbinary(argv[1]+"/hello.bin",memadr)    
+    ocd.setpc(memadr+arch.bootofs)
+    ocd.resume()
+    time.sleep(2)
     engine.close()
     
         

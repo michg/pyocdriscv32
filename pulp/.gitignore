@@ -1,0 +1,11 @@
+/**/*.o
+/**/*.baremetal
+/**/*.asm
+obj
+obj_dir
+output_icarus
+output_verilator
+INCA_libs
+irun.*
+.simvision
+waves.shm

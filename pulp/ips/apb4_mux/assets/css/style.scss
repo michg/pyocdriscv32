@@ -1,0 +1,81 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+/* Over-ride defaults */
+
+body { background-color: #FFFFFF; margin:0 0 0 20px; }
+
+code, pre { font-size: 12px; }
+
+a, a:visited { color: #050692; } /* Roa Logic Blue Links */
+a.github, a.github:visited { color: #FFFFFF; } /* White Button Text */
+
+header {
+	/*padding: 34px 25px 22px 40px;*/
+	background-color: #159957;
+	background-image: linear-gradient(120deg, #155799, #159957);
+	-webkit-border-radius: 4px;
+	-moz-border-radius: 4px;
+	border-radius: 4px;
+	border: 0px;
+	margin: 20px 20px;
+}
+
+/*footer { padding: 0 0 0 40px; }*/
+
+footer { text-align:center; }
+
+/* Use RoaLogic.com Fonts */
+
+h1, h2, h3 {
+	font-family: Montserrat, Monaco, serif;
+}
+
+h4, h5, h6 {
+	font-family: Montserrat, Monaco, serif;
+	font-weight: 700;
+}
+
+th {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+h1.header {
+ 	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* Recolour Buttons (Roa Logic Blue) */
+header li {
+  background: #0506CF;
+  background: -moz-linear-gradient(top, #0506CF 0%, #050692 100%);
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f8f8f8), color-stop(100%,#dddddd));
+  background: -webkit-linear-gradient(top, #0506CF 0%,#050692 100%);
+  background: -o-linear-gradient(top, #0506CF 0%,#050692 100%);
+  background: -ms-linear-gradient(top, #0506CF 0%,#050692 100%);
+  background: linear-gradient(top, #0506CF 0%,#050692 100%);
+
+  border-radius:4px;
+  border:1px solid #0D0D0D;
+
+  -webkit-box-shadow: inset 0px 1px 1px 0 rgba(0,102,204, 1);
+  box-shadow: inset 0px 1px 1px 0 rgba(0,102,204, 1);
+
+}
+header li:hover {
+  background: #0066CC;
+  background: -moz-linear-gradient(top, #0066CC 0%, #004080 100%);
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f8f8f8), color-stop(100%,#dddddd));
+  background: -webkit-linear-gradient(top, #0066CC 0%,#004080 100%);
+  background: -o-linear-gradient(top, #0066CC 0%,#004080 100%);
+  background: -ms-linear-gradient(top, #0066CC 0%,#004080 100%);
+  background: linear-gradient(top, #0066CC 0%,#004080 100%);
+}
+
+/* Format Logo in Header */
+p.logo {
+	margin: 10px 0px 10px 0px;
+}
+
+
