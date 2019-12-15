@@ -28,10 +28,10 @@ module jtag_tap
     jtag__tdi,
     reset_n,
 
+    tdo,
     dr_in,
     dr_action,
-    ir,
-    tdo
+    ir
 );
 
     //b Clocks
@@ -52,14 +52,14 @@ module jtag_tap
     input reset_n;
 
     //b Outputs
+        //   JTAG TDO pin
+    output tdo;
         //   DR to be fed to client
     output [49:0]dr_in;
         //   DR action (capture, update, shift, or none)
     output [1:0]dr_action;
         //   IR register to be used by client
     output [4:0]ir;
-        //   JTAG TDO pin
-    output tdo;
 
 // output components here
 
@@ -70,8 +70,6 @@ module jtag_tap
     reg [1:0]dr_action;
         //   IR register to be used by client
     reg [4:0]ir;
-        //   JTAG TDO pin
-    reg tdo;
 
     //b Output nets
 
@@ -79,6 +77,7 @@ module jtag_tap
     reg [3:0]jtag_state__state;
     reg [49:0]jtag_state__sr;
     reg [4:0]jtag_state__ir;
+    reg tdo;
 
     //b Internal combinatorials
     reg [3:0]jtag_combs__next_state;
@@ -90,16 +89,31 @@ module jtag_tap
 
     //b Clock gating module instances
     //b Module instances
-    //b wiring combinatorial process
+    //b wiring__comb combinatorial process
         //   
         //       Wire the outputs to depend on state (dr_action is a state decode)
         //       
-    always @ ( * )//wiring
+    always @ ( * )//wiring__comb
     begin: wiring__comb_code
-        tdo = jtag_state__sr[0];
         ir = jtag_state__ir;
         dr_in = jtag_state__sr[49:0];
         dr_action = jtag_combs__dr_action;
+    end //always
+
+    //b wiring__negedge_jtag_tck_active_low_reset_n clock process
+        //   
+        //       Wire the outputs to depend on state (dr_action is a state decode)
+        //       
+    always @( negedge jtag_tck or negedge reset_n)
+    begin : wiring__negedge_jtag_tck_active_low_reset_n__code
+        if (reset_n==1'b0)
+        begin
+            tdo <= 1'h0;
+        end
+        else if (jtag_tck__enable)
+        begin
+            tdo <= jtag_state__sr[0];
+        end //if
     end //always
 
     //b jtag_state_machine__comb combinatorial process

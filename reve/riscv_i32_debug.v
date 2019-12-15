@@ -38,6 +38,7 @@ module riscv_i32_debug
     debug_tgt__resp,
     debug_tgt__data,
     debug_tgt__attention,
+    debug_tgt__mask,
     apb_request__paddr,
     apb_request__penable,
     apb_request__psel,
@@ -72,6 +73,7 @@ module riscv_i32_debug
     input [1:0]debug_tgt__resp;
     input [31:0]debug_tgt__data;
     input debug_tgt__attention;
+    input [5:0]debug_tgt__mask;
         //   APB request
     input [31:0]apb_request__paddr;
     input apb_request__penable;
@@ -284,7 +286,7 @@ module riscv_i32_debug
             debug_mst__valid <= 1'h0;
             debug_mst__data <= 32'h0;
             debug_mst__select <= 6'h0;
-            debug_mst__mask <= 6'h3f;
+            debug_mst__mask <= 6'h0;
             if ((debug_state__must_set_requests!=1'h0))
             begin
                 debug_mst__valid <= 1'h1;

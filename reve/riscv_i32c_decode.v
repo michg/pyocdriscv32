@@ -31,6 +31,8 @@ module riscv_i32c_decode
     riscv_config__debug_enable,
     riscv_config__coproc_disable,
     riscv_config__unaligned_mem,
+    riscv_config__mem_abort_late,
+    instruction__mode,
     instruction__data,
     instruction__debug__valid,
     instruction__debug__debug_op,
@@ -42,19 +44,25 @@ module riscv_i32c_decode
     idecode__rs2_valid,
     idecode__rd,
     idecode__rd_written,
+    idecode__csr_access__mode,
     idecode__csr_access__access_cancelled,
     idecode__csr_access__access,
+    idecode__csr_access__custom__mhartid,
+    idecode__csr_access__custom__misa,
+    idecode__csr_access__custom__mvendorid,
+    idecode__csr_access__custom__marchid,
+    idecode__csr_access__custom__mimpid,
     idecode__csr_access__address,
+    idecode__csr_access__select,
     idecode__csr_access__write_data,
     idecode__immediate,
     idecode__immediate_shift,
     idecode__immediate_valid,
     idecode__op,
     idecode__subop,
+    idecode__shift_op,
     idecode__funct7,
-    idecode__minimum_mode,
     idecode__illegal,
-    idecode__illegal_pc,
     idecode__is_compressed,
     idecode__ext__dummy
 );
@@ -69,6 +77,8 @@ module riscv_i32c_decode
     input riscv_config__debug_enable;
     input riscv_config__coproc_disable;
     input riscv_config__unaligned_mem;
+    input riscv_config__mem_abort_late;
+    input [2:0]instruction__mode;
     input [31:0]instruction__data;
     input instruction__debug__valid;
     input [1:0]instruction__debug__debug_op;
@@ -81,19 +91,25 @@ module riscv_i32c_decode
     output idecode__rs2_valid;
     output [4:0]idecode__rd;
     output idecode__rd_written;
+    output [2:0]idecode__csr_access__mode;
     output idecode__csr_access__access_cancelled;
     output [2:0]idecode__csr_access__access;
+    output [31:0]idecode__csr_access__custom__mhartid;
+    output [31:0]idecode__csr_access__custom__misa;
+    output [31:0]idecode__csr_access__custom__mvendorid;
+    output [31:0]idecode__csr_access__custom__marchid;
+    output [31:0]idecode__csr_access__custom__mimpid;
     output [11:0]idecode__csr_access__address;
+    output [11:0]idecode__csr_access__select;
     output [31:0]idecode__csr_access__write_data;
     output [31:0]idecode__immediate;
     output [4:0]idecode__immediate_shift;
     output idecode__immediate_valid;
     output [3:0]idecode__op;
     output [3:0]idecode__subop;
+    output [3:0]idecode__shift_op;
     output [6:0]idecode__funct7;
-    output [2:0]idecode__minimum_mode;
     output idecode__illegal;
-    output idecode__illegal_pc;
     output idecode__is_compressed;
     output idecode__ext__dummy;
 
@@ -106,19 +122,25 @@ module riscv_i32c_decode
     reg idecode__rs2_valid;
     reg [4:0]idecode__rd;
     reg idecode__rd_written;
+    reg [2:0]idecode__csr_access__mode;
     reg idecode__csr_access__access_cancelled;
     reg [2:0]idecode__csr_access__access;
+    reg [31:0]idecode__csr_access__custom__mhartid;
+    reg [31:0]idecode__csr_access__custom__misa;
+    reg [31:0]idecode__csr_access__custom__mvendorid;
+    reg [31:0]idecode__csr_access__custom__marchid;
+    reg [31:0]idecode__csr_access__custom__mimpid;
     reg [11:0]idecode__csr_access__address;
+    reg [11:0]idecode__csr_access__select;
     reg [31:0]idecode__csr_access__write_data;
     reg [31:0]idecode__immediate;
     reg [4:0]idecode__immediate_shift;
     reg idecode__immediate_valid;
     reg [3:0]idecode__op;
     reg [3:0]idecode__subop;
+    reg [3:0]idecode__shift_op;
     reg [6:0]idecode__funct7;
-    reg [2:0]idecode__minimum_mode;
     reg idecode__illegal;
-    reg idecode__illegal_pc;
     reg idecode__is_compressed;
     reg idecode__ext__dummy;
 
@@ -175,18 +197,18 @@ module riscv_i32c_decode
         //       bit coming from bit 12 of the instruction.  Hence @a
         //       combs.imm_signed is created as a 32 bit value of either all ones
         //       or all zeros, to be used as a sign extension bit vector as required.
-        //       
+        //   
         //       The immediate variants of the RISC-V I32C base instruction have to be extracted from section 12 and are:
         //   
-        //       CI v1  sign extended     i[12],  i[5;2]                                for  li, addi, andi 
+        //       CI v1  sign extended     i[12],  i[5;2]                                for  li, addi, andi
         //       CI v2  zero ext          i[2;2] i[12], i[3;4], 2b0                     for lwsp
         //       CI v3  sign extended     i[12], i[5;2], 12b0                           for lui
         //       CI v4  sign extended     i[12], i[2;3], i[5], i[2], i[6], 4b0          for addi16sp
         //       CIW    zero ext    i[4;7], i[2;11], i[5] i[6], 2b0                     for addi4spn
         //       CSS,   zero ext               i[2;7], i[4;9], 2b0                      for swsp
-        //       CL, CS zero ext           i[5], i[3;10], i[6], 2b0                     for lw, sw  
+        //       CL, CS zero ext           i[5], i[3;10], i[6], 2b0                     for lw, sw
         //       CB,    sign ext  i[12], i[2;5], i[2], i[2;10], i[2;3], 1b0             for beqz/bnez
-        //       CJ     sign ext  i[12], i[8], i[2;9], i[3;6], i[2], i[11], i[3;3], 1b0 for j/jal   
+        //       CJ     sign ext  i[12], i[8], i[2;9], i[3;6], i[2], i[11], i[3;3], 1b0 for j/jal
         //   
         //       
     always @ ( * )//immediate_decode
@@ -361,8 +383,8 @@ module riscv_i32c_decode
     reg [3:0]idecode__op__var;
     reg idecode__illegal__var;
     reg [3:0]idecode__subop__var;
+    reg [3:0]idecode__shift_op__var;
         idecode__ext__dummy = 1'h0;
-        idecode__illegal_pc = 1'h0;
         idecode__is_compressed = 1'h1;
         idecode__rd__var = combs__rd_q0;
         idecode__rs1__var = combs__rs1;
@@ -370,16 +392,23 @@ module riscv_i32c_decode
         idecode__rs1_valid__var = 1'h0;
         idecode__rs2_valid__var = 1'h0;
         idecode__rd_written__var = 1'h0;
-        idecode__minimum_mode = 3'h0;
+        idecode__csr_access__mode = 3'h0;
         idecode__csr_access__access_cancelled = 1'h0;
         idecode__csr_access__access__var = 3'h0;
+        idecode__csr_access__custom__mhartid = 32'h0;
+        idecode__csr_access__custom__misa = 32'h0;
+        idecode__csr_access__custom__mvendorid = 32'h0;
+        idecode__csr_access__custom__marchid = 32'h0;
+        idecode__csr_access__custom__mimpid = 32'h0;
         idecode__csr_access__address = 12'h0;
+        idecode__csr_access__select = 12'h0;
         idecode__csr_access__write_data = 32'h0;
         idecode__csr_access__access__var = 3'h0;
         idecode__op__var = 4'hf;
         idecode__illegal__var = 1'h1;
         idecode__subop__var = 4'h0;
         idecode__funct7 = 7'h0;
+        idecode__shift_op__var = 4'h4;
         case (combs__quadrant) //synopsys parallel_case
         2'h0: // req 1
             begin
@@ -501,11 +530,13 @@ module riscv_i32c_decode
                 2'h0: // req 1
                     begin
                     idecode__subop__var = 4'h5;
+                    idecode__shift_op__var = 4'h4;
                     idecode__rs2_valid__var = 1'h0;
                     end
                 2'h1: // req 1
                     begin
-                    idecode__subop__var = 4'hd;
+                    idecode__subop__var = 4'h5;
+                    idecode__shift_op__var = 4'h6;
                     idecode__rs2_valid__var = 1'h0;
                     end
                 2'h2: // req 1
@@ -659,6 +690,7 @@ module riscv_i32c_decode
                 idecode__illegal__var = 1'h0;
                 idecode__op__var = 4'h7;
                 idecode__subop__var = 4'h1;
+                idecode__shift_op__var = 4'h0;
                 idecode__rs1_valid__var = 1'h1;
                 idecode__rs2_valid__var = 1'h0;
                 idecode__rd_written__var = 1'h1;
@@ -746,6 +778,7 @@ module riscv_i32c_decode
         idecode__op = idecode__op__var;
         idecode__illegal = idecode__illegal__var;
         idecode__subop = idecode__subop__var;
+        idecode__shift_op = idecode__shift_op__var;
     end //always
 
 endmodule // riscv_i32c_decode

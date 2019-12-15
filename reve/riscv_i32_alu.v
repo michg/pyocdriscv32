@@ -27,19 +27,25 @@ module riscv_i32_alu
     idecode__rs2_valid,
     idecode__rd,
     idecode__rd_written,
+    idecode__csr_access__mode,
     idecode__csr_access__access_cancelled,
     idecode__csr_access__access,
+    idecode__csr_access__custom__mhartid,
+    idecode__csr_access__custom__misa,
+    idecode__csr_access__custom__mvendorid,
+    idecode__csr_access__custom__marchid,
+    idecode__csr_access__custom__mimpid,
     idecode__csr_access__address,
+    idecode__csr_access__select,
     idecode__csr_access__write_data,
     idecode__immediate,
     idecode__immediate_shift,
     idecode__immediate_valid,
     idecode__op,
     idecode__subop,
+    idecode__shift_op,
     idecode__funct7,
-    idecode__minimum_mode,
     idecode__illegal,
-    idecode__illegal_pc,
     idecode__is_compressed,
     idecode__ext__dummy,
 
@@ -47,9 +53,16 @@ module riscv_i32_alu
     alu_result__arith_result,
     alu_result__branch_condition_met,
     alu_result__branch_target,
+    alu_result__csr_access__mode,
     alu_result__csr_access__access_cancelled,
     alu_result__csr_access__access,
+    alu_result__csr_access__custom__mhartid,
+    alu_result__csr_access__custom__misa,
+    alu_result__csr_access__custom__mvendorid,
+    alu_result__csr_access__custom__marchid,
+    alu_result__csr_access__custom__mimpid,
     alu_result__csr_access__address,
+    alu_result__csr_access__select,
     alu_result__csr_access__write_data
 );
 
@@ -65,19 +78,25 @@ module riscv_i32_alu
     input idecode__rs2_valid;
     input [4:0]idecode__rd;
     input idecode__rd_written;
+    input [2:0]idecode__csr_access__mode;
     input idecode__csr_access__access_cancelled;
     input [2:0]idecode__csr_access__access;
+    input [31:0]idecode__csr_access__custom__mhartid;
+    input [31:0]idecode__csr_access__custom__misa;
+    input [31:0]idecode__csr_access__custom__mvendorid;
+    input [31:0]idecode__csr_access__custom__marchid;
+    input [31:0]idecode__csr_access__custom__mimpid;
     input [11:0]idecode__csr_access__address;
+    input [11:0]idecode__csr_access__select;
     input [31:0]idecode__csr_access__write_data;
     input [31:0]idecode__immediate;
     input [4:0]idecode__immediate_shift;
     input idecode__immediate_valid;
     input [3:0]idecode__op;
     input [3:0]idecode__subop;
+    input [3:0]idecode__shift_op;
     input [6:0]idecode__funct7;
-    input [2:0]idecode__minimum_mode;
     input idecode__illegal;
-    input idecode__illegal_pc;
     input idecode__is_compressed;
     input idecode__ext__dummy;
 
@@ -86,9 +105,16 @@ module riscv_i32_alu
     output [31:0]alu_result__arith_result;
     output alu_result__branch_condition_met;
     output [31:0]alu_result__branch_target;
+    output [2:0]alu_result__csr_access__mode;
     output alu_result__csr_access__access_cancelled;
     output [2:0]alu_result__csr_access__access;
+    output [31:0]alu_result__csr_access__custom__mhartid;
+    output [31:0]alu_result__csr_access__custom__misa;
+    output [31:0]alu_result__csr_access__custom__mvendorid;
+    output [31:0]alu_result__csr_access__custom__marchid;
+    output [31:0]alu_result__csr_access__custom__mimpid;
     output [11:0]alu_result__csr_access__address;
+    output [11:0]alu_result__csr_access__select;
     output [31:0]alu_result__csr_access__write_data;
 
 // output components here
@@ -98,9 +124,16 @@ module riscv_i32_alu
     reg [31:0]alu_result__arith_result;
     reg alu_result__branch_condition_met;
     reg [31:0]alu_result__branch_target;
+    reg [2:0]alu_result__csr_access__mode;
     reg alu_result__csr_access__access_cancelled;
     reg [2:0]alu_result__csr_access__access;
+    reg [31:0]alu_result__csr_access__custom__mhartid;
+    reg [31:0]alu_result__csr_access__custom__misa;
+    reg [31:0]alu_result__csr_access__custom__mvendorid;
+    reg [31:0]alu_result__csr_access__custom__marchid;
+    reg [31:0]alu_result__csr_access__custom__mimpid;
     reg [11:0]alu_result__csr_access__address;
+    reg [11:0]alu_result__csr_access__select;
     reg [31:0]alu_result__csr_access__write_data;
 
     //b Output nets
@@ -111,9 +144,6 @@ module riscv_i32_alu
         //   Combinatorials used in the module, not exported as the decode
     reg [31:0]alu_combs__imm_or_rs2;
     reg [31:0]alu_combs__imm_or_rs1;
-    reg [63:0]alu_combs__rshift_operand;
-    reg [63:0]alu_combs__rshift_result;
-    reg [4:0]alu_combs__shift_amount;
     reg [31:0]alu_combs__arith_in_0;
     reg [31:0]alu_combs__arith_in_1;
     reg alu_combs__arith_carry_in;
@@ -127,11 +157,265 @@ module riscv_i32_alu
     reg [31:0]alu_combs__pc_plus_2;
     reg [31:0]alu_combs__pc_plus_inst;
     reg [31:0]alu_combs__pc_plus_imm;
+        //   Combinatorials used in the shifter
+    reg [1:0]shift_combs__and_mask_type;
+    reg [1:0]shift_combs__or_mask_type;
+    reg [1:0]shift_combs__bb_mask_type;
+    reg [4:0]shift_combs__shift_control;
+    reg [4:0]shift_combs__shift_amount;
+    reg [31:0]shift_combs__rotate_in;
+    reg [31:0]shift_combs__rotate_by_16;
+    reg [31:0]shift_combs__rotate_byte_reverse;
+    reg [31:0]shift_combs__rotate_bit_reverse;
+    reg [47:0]shift_combs__rotate_out;
+    reg [63:0]shift_combs__mask_in;
+    reg [63:0]shift_combs__mask_out;
+    reg [31:0]shift_combs__shift_and_mask;
+    reg [31:0]shift_combs__shift_or_mask;
+    reg [31:0]shift_combs__shift_result;
 
     //b Internal nets
 
     //b Clock gating module instances
     //b Module instances
+    //b shifter_operation combinatorial process
+        //   
+        //       The shifter can be built as a 64-bit shift-right-by-N, with masks to combine the two halves
+        //   
+        //   
+        //       A rotate right by 
+        //       
+    always @ ( * )//shifter_operation
+    begin: shifter_operation__comb_code
+    reg [1:0]shift_combs__and_mask_type__var;
+    reg [1:0]shift_combs__or_mask_type__var;
+    reg [1:0]shift_combs__bb_mask_type__var;
+    reg [4:0]shift_combs__shift_control__var;
+    reg [4:0]shift_combs__shift_amount__var;
+    reg [31:0]shift_combs__rotate_by_16__var;
+    reg [31:0]shift_combs__rotate_byte_reverse__var;
+    reg [31:0]shift_combs__rotate_bit_reverse__var;
+    reg [31:0]shift_combs__shift_and_mask__var;
+    reg [31:0]shift_combs__shift_or_mask__var;
+    reg [31:0]shift_combs__shift_result__var;
+        shift_combs__and_mask_type__var = 2'h0;
+        shift_combs__or_mask_type__var = 2'h0;
+        shift_combs__bb_mask_type__var = 2'h0;
+        case (idecode__shift_op) //synopsys parallel_case
+        4'h0: // req 1
+            begin
+            shift_combs__and_mask_type__var = 2'h1;
+            shift_combs__or_mask_type__var = 2'h0;
+            end
+        4'h4: // req 1
+            begin
+            shift_combs__and_mask_type__var = 2'h3;
+            shift_combs__or_mask_type__var = 2'h0;
+            end
+        4'h6: // req 1
+            begin
+            shift_combs__and_mask_type__var = 2'h3;
+            shift_combs__or_mask_type__var = ((rs1[31]!=1'h0)?2'h1:2'h0);
+            end
+        4'h1: // req 1
+            begin
+            if ((1'h1!=64'h0))
+            begin
+                shift_combs__and_mask_type__var = 2'h1;
+                shift_combs__or_mask_type__var = 2'h3;
+            end //if
+            end
+        4'h5: // req 1
+            begin
+            if ((1'h1!=64'h0))
+            begin
+                shift_combs__and_mask_type__var = 2'h3;
+                shift_combs__or_mask_type__var = 2'h1;
+            end //if
+            end
+        4'h3: // req 1
+            begin
+            if ((1'h1!=64'h0))
+            begin
+                shift_combs__and_mask_type__var = 2'h0;
+                shift_combs__or_mask_type__var = 2'h0;
+            end //if
+            end
+        4'h7: // req 1
+            begin
+            if ((1'h1!=64'h0))
+            begin
+                shift_combs__and_mask_type__var = 2'h0;
+                shift_combs__or_mask_type__var = 2'h0;
+            end //if
+            end
+        4'hc: // req 1
+            begin
+            if ((1'h1!=64'h0))
+            begin
+                shift_combs__and_mask_type__var = 2'h0;
+                shift_combs__or_mask_type__var = 2'h0;
+            end //if
+            end
+        4'h8: // req 1
+            begin
+            if ((1'h1!=64'h0))
+            begin
+                shift_combs__and_mask_type__var = 2'h1;
+                shift_combs__bb_mask_type__var = 2'h1;
+                shift_combs__or_mask_type__var = 2'h2;
+            end //if
+            end
+        4'h9: // req 1
+            begin
+            if ((1'h1!=64'h0))
+            begin
+                shift_combs__and_mask_type__var = 2'h1;
+                shift_combs__bb_mask_type__var = 2'h3;
+                shift_combs__or_mask_type__var = 2'h2;
+            end //if
+            end
+        //synopsys  translate_off
+        //pragma coverage off
+        //synopsys  translate_on
+        default:
+            begin
+            //Need a default case to make Cadence Lint happy, even though this is not a full case
+            end
+        //synopsys  translate_off
+        //pragma coverage on
+        //synopsys  translate_on
+        endcase
+        shift_combs__rotate_in = rs1;
+        shift_combs__shift_control__var = rs2[4:0];
+        if ((idecode__immediate_valid!=1'h0))
+        begin
+            shift_combs__shift_control__var = idecode__immediate_shift;
+        end //if
+        shift_combs__shift_amount__var = shift_combs__shift_control__var;
+        if (!((idecode__shift_op & 4'h4)!=4'h0))
+        begin
+            shift_combs__shift_amount__var = (~shift_combs__shift_control__var+5'h1);
+        end //if
+        shift_combs__mask_in = {32'hffffffff,32'h0};
+        shift_combs__rotate_by_16__var = shift_combs__rotate_in;
+        if ((shift_combs__shift_amount__var[4]!=1'h0))
+        begin
+            shift_combs__rotate_by_16__var = {shift_combs__rotate_in[15:0],shift_combs__rotate_in[31:16]};
+        end //if
+        shift_combs__rotate_byte_reverse__var = shift_combs__rotate_by_16__var;
+        if ((shift_combs__shift_amount__var[3]!=1'h0))
+        begin
+            shift_combs__rotate_byte_reverse__var = {{{shift_combs__rotate_by_16__var[23:16],shift_combs__rotate_by_16__var[31:24]},shift_combs__rotate_by_16__var[7:0]},shift_combs__rotate_by_16__var[15:8]};
+        end //if
+        shift_combs__rotate_bit_reverse__var = shift_combs__rotate_byte_reverse__var;
+        if ((shift_combs__shift_amount__var[0]!=1'h0))
+        begin
+            shift_combs__rotate_bit_reverse__var[7:0] = {{{{{{{shift_combs__rotate_byte_reverse__var[0],shift_combs__rotate_byte_reverse__var[1]},shift_combs__rotate_byte_reverse__var[2]},shift_combs__rotate_byte_reverse__var[3]},shift_combs__rotate_byte_reverse__var[4]},shift_combs__rotate_byte_reverse__var[5]},shift_combs__rotate_byte_reverse__var[6]},shift_combs__rotate_byte_reverse__var[7]};
+            shift_combs__rotate_bit_reverse__var[15:8] = {{{{{{{shift_combs__rotate_byte_reverse__var[8],shift_combs__rotate_byte_reverse__var[9]},shift_combs__rotate_byte_reverse__var[10]},shift_combs__rotate_byte_reverse__var[11]},shift_combs__rotate_byte_reverse__var[12]},shift_combs__rotate_byte_reverse__var[13]},shift_combs__rotate_byte_reverse__var[14]},shift_combs__rotate_byte_reverse__var[15]};
+            shift_combs__rotate_bit_reverse__var[23:16] = {{{{{{{shift_combs__rotate_byte_reverse__var[16],shift_combs__rotate_byte_reverse__var[17]},shift_combs__rotate_byte_reverse__var[18]},shift_combs__rotate_byte_reverse__var[19]},shift_combs__rotate_byte_reverse__var[20]},shift_combs__rotate_byte_reverse__var[21]},shift_combs__rotate_byte_reverse__var[22]},shift_combs__rotate_byte_reverse__var[23]};
+            shift_combs__rotate_bit_reverse__var[31:24] = {{{{{{{shift_combs__rotate_byte_reverse__var[24],shift_combs__rotate_byte_reverse__var[25]},shift_combs__rotate_byte_reverse__var[26]},shift_combs__rotate_byte_reverse__var[27]},shift_combs__rotate_byte_reverse__var[28]},shift_combs__rotate_byte_reverse__var[29]},shift_combs__rotate_byte_reverse__var[30]},shift_combs__rotate_byte_reverse__var[31]};
+        end //if
+        shift_combs__rotate_out = ({shift_combs__rotate_by_16__var[15:0],shift_combs__rotate_by_16__var}>>shift_combs__shift_amount__var[3:0]);
+        shift_combs__mask_out = (shift_combs__mask_in>>shift_combs__shift_amount__var);
+        shift_combs__shift_and_mask__var = shift_combs__mask_out[31:0];
+        case (shift_combs__and_mask_type__var) //synopsys parallel_case
+        2'h0: // req 1
+            begin
+            shift_combs__shift_and_mask__var = 32'hffffffff;
+            end
+        2'h3: // req 1
+            begin
+            shift_combs__shift_and_mask__var = ~shift_combs__shift_and_mask__var;
+            end
+        //synopsys  translate_off
+        //pragma coverage off
+        //synopsys  translate_on
+        default:
+            begin
+            //Need a default case to make Cadence Lint happy, even though this is not a full case
+            end
+        //synopsys  translate_off
+        //pragma coverage on
+        //synopsys  translate_on
+        endcase
+        if ((shift_combs__shift_control__var==5'h0))
+        begin
+            shift_combs__shift_and_mask__var = 32'hffffffff;
+        end //if
+        if ((1'h1!=64'h0))
+        begin
+            case (shift_combs__bb_mask_type__var) //synopsys parallel_case
+            2'h3: // req 1
+                begin
+                shift_combs__shift_and_mask__var = (shift_combs__shift_and_mask__var & ~(shift_combs__shift_and_mask__var<<64'h8));
+                end
+            2'h1: // req 1
+                begin
+                shift_combs__shift_and_mask__var = (shift_combs__shift_and_mask__var & ~(shift_combs__shift_and_mask__var<<64'h1));
+                end
+            //synopsys  translate_off
+            //pragma coverage off
+            //synopsys  translate_on
+            default:
+                begin
+                //Need a default case to make Cadence Lint happy, even though this is not a full case
+                end
+            //synopsys  translate_off
+            //pragma coverage on
+            //synopsys  translate_on
+            endcase
+        end //if
+        shift_combs__shift_or_mask__var = shift_combs__mask_out[31:0];
+        if ((shift_combs__shift_control__var==5'h0))
+        begin
+            shift_combs__shift_or_mask__var = 32'h0;
+        end //if
+        case (shift_combs__or_mask_type__var) //synopsys parallel_case
+        2'h0: // req 1
+            begin
+            shift_combs__shift_or_mask__var = 32'h0;
+            end
+        2'h3: // req 1
+            begin
+            shift_combs__shift_or_mask__var = ~shift_combs__shift_and_mask__var;
+            end
+        2'h2: // req 1
+            begin
+            shift_combs__shift_or_mask__var = (rs2 & ~shift_combs__shift_and_mask__var);
+            end
+        //synopsys  translate_off
+        //pragma coverage off
+        //synopsys  translate_on
+        default:
+            begin
+            //Need a default case to make Cadence Lint happy, even though this is not a full case
+            end
+        //synopsys  translate_off
+        //pragma coverage on
+        //synopsys  translate_on
+        endcase
+        shift_combs__shift_result__var = ((shift_combs__rotate_out[31:0] & shift_combs__shift_and_mask__var) | shift_combs__shift_or_mask__var);
+        if ((1'h1!=64'h0))
+        begin
+            if ((idecode__shift_op==4'hc))
+            begin
+                shift_combs__shift_result__var = shift_combs__rotate_bit_reverse__var;
+            end //if
+        end //if
+        shift_combs__and_mask_type = shift_combs__and_mask_type__var;
+        shift_combs__or_mask_type = shift_combs__or_mask_type__var;
+        shift_combs__bb_mask_type = shift_combs__bb_mask_type__var;
+        shift_combs__shift_control = shift_combs__shift_control__var;
+        shift_combs__shift_amount = shift_combs__shift_amount__var;
+        shift_combs__rotate_by_16 = shift_combs__rotate_by_16__var;
+        shift_combs__rotate_byte_reverse = shift_combs__rotate_byte_reverse__var;
+        shift_combs__rotate_bit_reverse = shift_combs__rotate_bit_reverse__var;
+        shift_combs__shift_and_mask = shift_combs__shift_and_mask__var;
+        shift_combs__shift_or_mask = shift_combs__shift_or_mask__var;
+        shift_combs__shift_result = shift_combs__shift_result__var;
+    end //always
+
     //b alu_operation combinatorial process
         //   
         //       
@@ -139,8 +423,6 @@ module riscv_i32_alu
     begin: alu_operation__comb_code
     reg [31:0]alu_combs__imm_or_rs2__var;
     reg [31:0]alu_combs__imm_or_rs1__var;
-    reg [63:0]alu_combs__rshift_operand__var;
-    reg [4:0]alu_combs__shift_amount__var;
     reg [31:0]alu_combs__arith_in_1__var;
     reg alu_combs__arith_carry_in__var;
     reg [32:0]alu_combs__arith_result__var;
@@ -158,17 +440,6 @@ module riscv_i32_alu
         begin
             alu_combs__imm_or_rs1__var = idecode__immediate;
         end //if
-        alu_combs__rshift_operand__var = {32'h0,rs1};
-        if ((((idecode__subop==4'hd) & rs1[31])!=1'h0))
-        begin
-            alu_combs__rshift_operand__var[63:32] = 32'hffffffff;
-        end //if
-        alu_combs__shift_amount__var = rs2[4:0];
-        if ((idecode__immediate_valid!=1'h0))
-        begin
-            alu_combs__shift_amount__var = idecode__immediate_shift;
-        end //if
-        alu_combs__rshift_result = (alu_combs__rshift_operand__var>>alu_combs__shift_amount__var);
         alu_combs__arith_in_0 = rs1;
         alu_combs__arith_in_1__var = alu_combs__imm_or_rs2__var;
         alu_combs__arith_carry_in__var = 1'h0;
@@ -268,15 +539,11 @@ module riscv_i32_alu
             end
         4'h1: // req 1
             begin
-            alu_result__result__var = (rs1<<alu_combs__shift_amount__var);
+            alu_result__result__var = shift_combs__shift_result[31:0];
             end
         4'h5: // req 1
             begin
-            alu_result__result__var = alu_combs__rshift_result[31:0];
-            end
-        4'hd: // req 1
-            begin
-            alu_result__result__var = alu_combs__rshift_result[31:0];
+            alu_result__result__var = shift_combs__shift_result[31:0];
             end
         //synopsys  translate_off
         //pragma coverage off
@@ -334,15 +601,20 @@ module riscv_i32_alu
         //pragma coverage on
         //synopsys  translate_on
         endcase
+        alu_result__csr_access__mode = idecode__csr_access__mode;
         alu_result__csr_access__access_cancelled = idecode__csr_access__access_cancelled;
         alu_result__csr_access__access = idecode__csr_access__access;
+        alu_result__csr_access__custom__mhartid = idecode__csr_access__custom__mhartid;
+        alu_result__csr_access__custom__misa = idecode__csr_access__custom__misa;
+        alu_result__csr_access__custom__mvendorid = idecode__csr_access__custom__mvendorid;
+        alu_result__csr_access__custom__marchid = idecode__csr_access__custom__marchid;
+        alu_result__csr_access__custom__mimpid = idecode__csr_access__custom__mimpid;
         alu_result__csr_access__address = idecode__csr_access__address;
+        alu_result__csr_access__select = idecode__csr_access__select;
         alu_result__csr_access__write_data__var = idecode__csr_access__write_data;
         alu_result__csr_access__write_data__var = alu_combs__imm_or_rs1__var;
         alu_combs__imm_or_rs2 = alu_combs__imm_or_rs2__var;
         alu_combs__imm_or_rs1 = alu_combs__imm_or_rs1__var;
-        alu_combs__rshift_operand = alu_combs__rshift_operand__var;
-        alu_combs__shift_amount = alu_combs__shift_amount__var;
         alu_combs__arith_in_1 = alu_combs__arith_in_1__var;
         alu_combs__arith_carry_in = alu_combs__arith_carry_in__var;
         alu_combs__arith_result = alu_combs__arith_result__var;

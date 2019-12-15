@@ -18,33 +18,41 @@
 module riscv_i32_dmem_request
 (
 
+    dmem_exec__valid,
+    dmem_exec__mode,
     dmem_exec__idecode__rs1,
     dmem_exec__idecode__rs1_valid,
     dmem_exec__idecode__rs2,
     dmem_exec__idecode__rs2_valid,
     dmem_exec__idecode__rd,
     dmem_exec__idecode__rd_written,
+    dmem_exec__idecode__csr_access__mode,
     dmem_exec__idecode__csr_access__access_cancelled,
     dmem_exec__idecode__csr_access__access,
+    dmem_exec__idecode__csr_access__custom__mhartid,
+    dmem_exec__idecode__csr_access__custom__misa,
+    dmem_exec__idecode__csr_access__custom__mvendorid,
+    dmem_exec__idecode__csr_access__custom__marchid,
+    dmem_exec__idecode__csr_access__custom__mimpid,
     dmem_exec__idecode__csr_access__address,
+    dmem_exec__idecode__csr_access__select,
     dmem_exec__idecode__csr_access__write_data,
     dmem_exec__idecode__immediate,
     dmem_exec__idecode__immediate_shift,
     dmem_exec__idecode__immediate_valid,
     dmem_exec__idecode__op,
     dmem_exec__idecode__subop,
+    dmem_exec__idecode__shift_op,
     dmem_exec__idecode__funct7,
-    dmem_exec__idecode__minimum_mode,
     dmem_exec__idecode__illegal,
-    dmem_exec__idecode__illegal_pc,
     dmem_exec__idecode__is_compressed,
     dmem_exec__idecode__ext__dummy,
     dmem_exec__arith_result,
     dmem_exec__rs2,
-    dmem_exec__exec_committed,
     dmem_exec__first_cycle,
 
     dmem_request__access__valid,
+    dmem_request__access__mode,
     dmem_request__access__req_type,
     dmem_request__access__address,
     dmem_request__access__sequential,
@@ -64,34 +72,42 @@ module riscv_i32_dmem_request
     //b Clocks
 
     //b Inputs
+    input dmem_exec__valid;
+    input [2:0]dmem_exec__mode;
     input [4:0]dmem_exec__idecode__rs1;
     input dmem_exec__idecode__rs1_valid;
     input [4:0]dmem_exec__idecode__rs2;
     input dmem_exec__idecode__rs2_valid;
     input [4:0]dmem_exec__idecode__rd;
     input dmem_exec__idecode__rd_written;
+    input [2:0]dmem_exec__idecode__csr_access__mode;
     input dmem_exec__idecode__csr_access__access_cancelled;
     input [2:0]dmem_exec__idecode__csr_access__access;
+    input [31:0]dmem_exec__idecode__csr_access__custom__mhartid;
+    input [31:0]dmem_exec__idecode__csr_access__custom__misa;
+    input [31:0]dmem_exec__idecode__csr_access__custom__mvendorid;
+    input [31:0]dmem_exec__idecode__csr_access__custom__marchid;
+    input [31:0]dmem_exec__idecode__csr_access__custom__mimpid;
     input [11:0]dmem_exec__idecode__csr_access__address;
+    input [11:0]dmem_exec__idecode__csr_access__select;
     input [31:0]dmem_exec__idecode__csr_access__write_data;
     input [31:0]dmem_exec__idecode__immediate;
     input [4:0]dmem_exec__idecode__immediate_shift;
     input dmem_exec__idecode__immediate_valid;
     input [3:0]dmem_exec__idecode__op;
     input [3:0]dmem_exec__idecode__subop;
+    input [3:0]dmem_exec__idecode__shift_op;
     input [6:0]dmem_exec__idecode__funct7;
-    input [2:0]dmem_exec__idecode__minimum_mode;
     input dmem_exec__idecode__illegal;
-    input dmem_exec__idecode__illegal_pc;
     input dmem_exec__idecode__is_compressed;
     input dmem_exec__idecode__ext__dummy;
     input [31:0]dmem_exec__arith_result;
     input [31:0]dmem_exec__rs2;
-    input dmem_exec__exec_committed;
     input dmem_exec__first_cycle;
 
     //b Outputs
     output dmem_request__access__valid;
+    output [2:0]dmem_request__access__mode;
     output [4:0]dmem_request__access__req_type;
     output [31:0]dmem_request__access__address;
     output dmem_request__access__sequential;
@@ -111,6 +127,7 @@ module riscv_i32_dmem_request
 
     //b Output combinatorials
     reg dmem_request__access__valid;
+    reg [2:0]dmem_request__access__mode;
     reg [4:0]dmem_request__access__req_type;
     reg [31:0]dmem_request__access__address;
     reg dmem_request__access__sequential;
@@ -153,6 +170,7 @@ module riscv_i32_dmem_request
     reg dmem_request__store_address_misaligned__var;
     reg [31:0]dmem_request__access__write_data__var;
         dmem_request__access__valid__var = 1'h0;
+        dmem_request__access__mode = dmem_exec__mode;
         dmem_request__access__address = dmem_exec__arith_result;
         dmem_request__access__sequential = 1'h0;
         dmem_combs__word_offset = dmem_exec__arith_result[1:0];
@@ -193,7 +211,7 @@ module riscv_i32_dmem_request
         dmem_request__store_address_misaligned__var = 1'h0;
         if ((dmem_exec__idecode__op==4'h6))
         begin
-            dmem_request__access__valid__var = 1'h1;
+            dmem_request__access__valid__var = dmem_exec__valid;
             dmem_request__access__req_type__var = 5'h1;
             dmem_request__load_address_misaligned__var = dmem_combs__dmem_misaligned__var;
             if (((dmem_exec__idecode__subop & 4'h8)!=4'h0))
@@ -202,10 +220,6 @@ module riscv_i32_dmem_request
                 dmem_request__store_address_misaligned__var = dmem_combs__dmem_misaligned__var;
                 dmem_request__load_address_misaligned__var = 1'h0;
             end //if
-        end //if
-        if (!(dmem_exec__exec_committed!=1'h0))
-        begin
-            dmem_request__access__valid__var = 1'h0;
         end //if
         dmem_request__reading = ((dmem_request__access__valid__var!=1'h0)&&(dmem_request__access__req_type__var==5'h1));
         dmem_request__access__write_data__var = dmem_exec__rs2;

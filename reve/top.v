@@ -11,74 +11,61 @@
 // Verilog option use_always_at_star 1
 // Verilog option clocks_must_have_enables 1
 
-//a Module tb_riscv_i32mc_pipeline3
+//a Module tb_riscv_i32_minimal
 module top
 (
-    clk,
-    //clk__enable,
     jtag_tck,
-    //jtag_tck__enable,
-    tdo,
-    jtag_tdi,
-    jtag_tms,
-    //jtag__ntrst,
-	 //tck_enable,
-    reset_n
+    jtag_tck_enable,
+    clk,
+    clk_enable,
 
+    reset_n,
+    uart_rx_rxd,
+    uart_rx_rts,
+    jtag_ntrst,
+    jtag_tms,
+    jtag_tdi,
+
+    uart_tx_txd,
+    uart_tx_cts,
+    tdo
 );
 
+
     //b Clocks
-    input clk;
-    //input clk__enable;
-    
-    wire clk__enable;
-    assign clk__enable = 1'b1;
-    
-    wire riscv_clk; // Gated version of clock 'clk' enabled by 'riscv_clk_cycle_2'
-    wire riscv_clk__enable;
     input jtag_tck;
-    
-    wire jtag_tck__enable;
-    assign jtag_tck__enable = 1'b1;
-    
-    output tdo;
-    input  jtag_tdi;
-    input jtag_tms;
-    
-    wire jtag__ntrst;
-    assign jtag__ntrst = 1'b1;
-    
-    wire tck_enable;
-    assign tck_enable = 1'b1;
-	 
+    input jtag_tck_enable;
     wire jtag_tck_gated; // Gated version of clock 'jtag_tck' enabled by 'tck_enable_fix'
     wire jtag_tck_gated__enable;
+    input clk;
+    input clk_enable;
 
     //b Inputs
     input reset_n;
+    input uart_rx_rxd;
+    input uart_rx_rts;
+    input jtag_ntrst;
+    input jtag_tms;
+    input jtag_tdi;
 
     //b Outputs
+    output uart_tx_txd;
+    output uart_tx_cts;
+    output tdo;
 
 // output components here
 
     //b Output combinatorials
-
+    
     //b Output nets
+    wire uart_tx_txd;
+    wire uart_tx_cts;
+    wire tdo;
 
     //b Internal and output registers
-    reg [31:0]dmem_write_data;
-    reg [13:0]dmem_address;
-    reg dmem_read_not_write;
-    reg dmem_select;
-    reg dmem_select_last;
-    reg [31:0]last_imem_mem_read_data;
-    reg riscv_clk_cycle_2;
-    reg riscv_clk_cycle_1;
-    reg riscv_clk_cycle_0;
-    reg [1:0]clk_divider;
 
     //b Internal combinatorials
-    reg riscv_clk_enable;
+    reg tck_enable_fix;
     reg irqs__nmi;
     reg irqs__meip;
     reg irqs__seip;
@@ -86,6 +73,50 @@ module top
     reg irqs__mtip;
     reg irqs__msip;
     reg [63:0]irqs__time;
+    reg timer_control__reset_counter;
+    reg timer_control__enable_counter;
+    reg timer_control__advance;
+    reg timer_control__retard;
+    reg timer_control__lock_to_master;
+    reg [1:0]timer_control__lock_window_lsb;
+    reg [1:0]timer_control__synchronize;
+    reg [63:0]timer_control__synchronize_value;
+    reg timer_control__block_writes;
+    reg [7:0]timer_control__bonus_subfraction_add;
+    reg [7:0]timer_control__bonus_subfraction_sub;
+    reg [3:0]timer_control__fractional_adder;
+    reg [7:0]timer_control__integer_adder;
+    reg [31:0]jtag_apb_response__prdata;
+    reg jtag_apb_response__pready;
+    reg jtag_apb_response__perr;
+    reg [31:0]mux_apb_response__prdata;
+    reg mux_apb_response__pready;
+    reg mux_apb_response__perr;
+    reg [31:0]uart_apb_request__paddr;
+    reg uart_apb_request__penable;
+    reg uart_apb_request__psel;
+    reg uart_apb_request__pwrite;
+    reg [31:0]uart_apb_request__pwdata;
+    reg [31:0]debug_apb_request__paddr;
+    reg debug_apb_request__penable;
+    reg debug_apb_request__psel;
+    reg debug_apb_request__pwrite;
+    reg [31:0]debug_apb_request__pwdata;
+    reg [31:0]sram_apb_request__paddr;
+    reg sram_apb_request__penable;
+    reg sram_apb_request__psel;
+    reg sram_apb_request__pwrite;
+    reg [31:0]sram_apb_request__pwdata;
+    reg [31:0]timer_apb_request__paddr;
+    reg timer_apb_request__penable;
+    reg timer_apb_request__psel;
+    reg timer_apb_request__pwrite;
+    reg [31:0]timer_apb_request__pwdata;
+    reg [31:0]th_apb_request__paddr;
+    reg th_apb_request__penable;
+    reg th_apb_request__psel;
+    reg th_apb_request__pwrite;
+    reg [31:0]th_apb_request__pwdata;
     reg riscv_config__i32c;
     reg riscv_config__e32;
     reg riscv_config__i32m;
@@ -93,36 +124,30 @@ module top
     reg riscv_config__debug_enable;
     reg riscv_config__coproc_disable;
     reg riscv_config__unaligned_mem;
-    reg rv_imem_access_resp__valid;
-    reg rv_imem_access_resp__debug;
-    reg [31:0]rv_imem_access_resp__data;
-    reg [2:0]rv_imem_access_resp__mode;
-    reg rv_imem_access_resp__error;
-    reg [1:0]rv_imem_access_resp__tag;
-    reg imem_access_req__flush_pipeline;
-    reg [2:0]imem_access_req__req_type;
-    reg imem_access_req__debug_fetch;
-    reg [31:0]imem_access_req__address;
-    reg [2:0]imem_access_req__mode;
-    reg imem_access_req__predicted_branch;
-    reg [31:0]imem_access_req__pc_if_mispredicted;
-    reg dmem_access_resp__ack_if_seq;
-    reg dmem_access_resp__ack;
-    reg dmem_access_resp__abort_req;
-    reg dmem_access_resp__read_data_valid;
-    reg [31:0]dmem_access_resp__read_data;
-    reg debug_tgt__valid;
-    reg [5:0]debug_tgt__selected;
-    reg debug_tgt__halted;
-    reg debug_tgt__resumed;
-    reg debug_tgt__hit_breakpoint;
-    reg debug_tgt__op_was_none;
-    reg [1:0]debug_tgt__resp;
-    reg [31:0]debug_tgt__data;
-    reg debug_tgt__attention;
-    reg tck_enable_fix;
+    reg riscv_config__mem_abort_late;
 
     //b Internal nets
+    wire debug_tgt__valid;
+    wire [5:0]debug_tgt__selected;
+    wire debug_tgt__halted;
+    wire debug_tgt__resumed;
+    wire debug_tgt__hit_breakpoint;
+    wire debug_tgt__op_was_none;
+    wire [1:0]debug_tgt__resp;
+    wire [31:0]debug_tgt__data;
+    wire debug_tgt__attention;
+    wire [5:0]debug_tgt__mask;
+    wire debug_mst__valid;
+    wire [5:0]debug_mst__select;
+    wire [5:0]debug_mst__mask;
+    wire [3:0]debug_mst__op;
+    wire [15:0]debug_mst__arg;
+    wire [31:0]debug_mst__data;
+    wire [49:0]dr_out;
+    wire [49:0]dr_tdi_mask;
+    wire [49:0]dr_in;
+    wire [1:0]dr_action;
+    wire [4:0]ir;
     wire trace__instr_valid;
     wire [2:0]trace__mode;
     wire [31:0]trace__instr_pc;
@@ -138,299 +163,202 @@ module top
     wire [31:0]trace__rfw_data;
     wire trace__bkpt_valid;
     wire [3:0]trace__bkpt_reason;
-    wire coproc_response__cannot_start;
-    wire [31:0]coproc_response__result;
-    wire coproc_response__result_valid;
-    wire coproc_response__cannot_complete;
-    wire coproc_controls__dec_idecode_valid;
-    wire [4:0]coproc_controls__dec_idecode__rs1;
-    wire coproc_controls__dec_idecode__rs1_valid;
-    wire [4:0]coproc_controls__dec_idecode__rs2;
-    wire coproc_controls__dec_idecode__rs2_valid;
-    wire [4:0]coproc_controls__dec_idecode__rd;
-    wire coproc_controls__dec_idecode__rd_written;
-    wire coproc_controls__dec_idecode__csr_access__access_cancelled;
-    wire [2:0]coproc_controls__dec_idecode__csr_access__access;
-    wire [11:0]coproc_controls__dec_idecode__csr_access__address;
-    wire [31:0]coproc_controls__dec_idecode__csr_access__write_data;
-    wire [31:0]coproc_controls__dec_idecode__immediate;
-    wire [4:0]coproc_controls__dec_idecode__immediate_shift;
-    wire coproc_controls__dec_idecode__immediate_valid;
-    wire [3:0]coproc_controls__dec_idecode__op;
-    wire [3:0]coproc_controls__dec_idecode__subop;
-    wire [6:0]coproc_controls__dec_idecode__funct7;
-    wire [2:0]coproc_controls__dec_idecode__minimum_mode;
-    wire coproc_controls__dec_idecode__illegal;
-    wire coproc_controls__dec_idecode__illegal_pc;
-    wire coproc_controls__dec_idecode__is_compressed;
-    wire coproc_controls__dec_idecode__ext__dummy;
-    wire coproc_controls__dec_to_alu_blocked;
-    wire [31:0]coproc_controls__alu_rs1;
-    wire [31:0]coproc_controls__alu_rs2;
-    wire coproc_controls__alu_flush_pipeline;
-    wire coproc_controls__alu_cannot_start;
-    wire coproc_controls__alu_cannot_complete;
-    wire [31:0]main_mem_read_data;
-    wire [31:0]imem_mem_read_data;
-    wire pipeline_fetch_data__valid;
-    wire [31:0]pipeline_fetch_data__pc;
-    wire [31:0]pipeline_fetch_data__instruction__data;
-    wire pipeline_fetch_data__instruction__debug__valid;
-    wire [1:0]pipeline_fetch_data__instruction__debug__debug_op;
-    wire [15:0]pipeline_fetch_data__instruction__debug__data;
-    wire pipeline_fetch_data__dec_flush_pipeline;
-    wire pipeline_fetch_data__dec_predicted_branch;
-    wire [31:0]pipeline_fetch_data__dec_pc_if_mispredicted;
-    wire pipeline_response__decode__valid;
-    wire pipeline_response__decode__blocked;
-    wire [31:0]pipeline_response__decode__pc;
-    wire [31:0]pipeline_response__decode__branch_target;
-    wire [4:0]pipeline_response__decode__idecode__rs1;
-    wire pipeline_response__decode__idecode__rs1_valid;
-    wire [4:0]pipeline_response__decode__idecode__rs2;
-    wire pipeline_response__decode__idecode__rs2_valid;
-    wire [4:0]pipeline_response__decode__idecode__rd;
-    wire pipeline_response__decode__idecode__rd_written;
-    wire pipeline_response__decode__idecode__csr_access__access_cancelled;
-    wire [2:0]pipeline_response__decode__idecode__csr_access__access;
-    wire [11:0]pipeline_response__decode__idecode__csr_access__address;
-    wire [31:0]pipeline_response__decode__idecode__csr_access__write_data;
-    wire [31:0]pipeline_response__decode__idecode__immediate;
-    wire [4:0]pipeline_response__decode__idecode__immediate_shift;
-    wire pipeline_response__decode__idecode__immediate_valid;
-    wire [3:0]pipeline_response__decode__idecode__op;
-    wire [3:0]pipeline_response__decode__idecode__subop;
-    wire [6:0]pipeline_response__decode__idecode__funct7;
-    wire [2:0]pipeline_response__decode__idecode__minimum_mode;
-    wire pipeline_response__decode__idecode__illegal;
-    wire pipeline_response__decode__idecode__illegal_pc;
-    wire pipeline_response__decode__idecode__is_compressed;
-    wire pipeline_response__decode__idecode__ext__dummy;
-    wire pipeline_response__decode__enable_branch_prediction;
-    wire pipeline_response__exec__valid;
-    wire pipeline_response__exec__cannot_start;
-    wire pipeline_response__exec__cannot_complete;
-    wire pipeline_response__exec__interrupt_ack;
-    wire pipeline_response__exec__branch_taken;
-    wire pipeline_response__exec__jalr;
-    wire pipeline_response__exec__trap__valid;
-    wire [2:0]pipeline_response__exec__trap__to_mode;
-    wire [3:0]pipeline_response__exec__trap__cause;
-    wire [31:0]pipeline_response__exec__trap__pc;
-    wire [31:0]pipeline_response__exec__trap__value;
-    wire pipeline_response__exec__trap__ret;
-    wire pipeline_response__exec__trap__vector;
-    wire pipeline_response__exec__trap__ebreak_to_dbg;
-    wire pipeline_response__exec__is_compressed;
-    wire [31:0]pipeline_response__exec__instruction__data;
-    wire pipeline_response__exec__instruction__debug__valid;
-    wire [1:0]pipeline_response__exec__instruction__debug__debug_op;
-    wire [15:0]pipeline_response__exec__instruction__debug__data;
-    wire [31:0]pipeline_response__exec__rs1;
-    wire [31:0]pipeline_response__exec__rs2;
-    wire [31:0]pipeline_response__exec__pc;
-    wire pipeline_response__exec__predicted_branch;
-    wire [31:0]pipeline_response__exec__pc_if_mispredicted;
-    wire pipeline_response__rfw__valid;
-    wire pipeline_response__rfw__rd_written;
-    wire [4:0]pipeline_response__rfw__rd;
-    wire [31:0]pipeline_response__rfw__data;
-    wire pipeline_response__pipeline_empty;
-    wire pipeline_control__valid;
-    wire [2:0]pipeline_control__fetch_action;
-    wire [31:0]pipeline_control__fetch_pc;
-    wire [2:0]pipeline_control__mode;
-    wire pipeline_control__error;
-    wire [1:0]pipeline_control__tag;
-    wire pipeline_control__halt;
-    wire pipeline_control__ebreak_to_dbg;
-    wire pipeline_control__interrupt_req;
-    wire [3:0]pipeline_control__interrupt_number;
-    wire [2:0]pipeline_control__interrupt_to_mode;
-    wire [31:0]pipeline_control__instruction_data;
-    wire pipeline_control__instruction_debug__valid;
-    wire [1:0]pipeline_control__instruction_debug__debug_op;
-    wire [15:0]pipeline_control__instruction_debug__data;
-    wire [63:0]csrs__cycles;
-    wire [63:0]csrs__instret;
-    wire [63:0]csrs__time;
-    wire [31:0]csrs__mscratch;
-    wire [31:0]csrs__mepc;
-    wire [31:0]csrs__mcause;
-    wire [31:0]csrs__mtval;
-    wire [29:0]csrs__mtvec__base;
-    wire csrs__mtvec__vectored;
-    wire csrs__mstatus__sd;
-    wire csrs__mstatus__tsr;
-    wire csrs__mstatus__tw;
-    wire csrs__mstatus__tvm;
-    wire csrs__mstatus__mxr;
-    wire csrs__mstatus__sum;
-    wire csrs__mstatus__mprv;
-    wire [1:0]csrs__mstatus__xs;
-    wire [1:0]csrs__mstatus__fs;
-    wire [1:0]csrs__mstatus__mpp;
-    wire csrs__mstatus__spp;
-    wire csrs__mstatus__mpie;
-    wire csrs__mstatus__spie;
-    wire csrs__mstatus__upie;
-    wire csrs__mstatus__mie;
-    wire csrs__mstatus__sie;
-    wire csrs__mstatus__uie;
-    wire csrs__mip__meip;
-    wire csrs__mip__seip;
-    wire csrs__mip__ueip;
-    wire csrs__mip__seip_sw;
-    wire csrs__mip__ueip_sw;
-    wire csrs__mip__mtip;
-    wire csrs__mip__stip;
-    wire csrs__mip__utip;
-    wire csrs__mip__msip;
-    wire csrs__mip__ssip;
-    wire csrs__mip__usip;
-    wire csrs__mie__meip;
-    wire csrs__mie__seip;
-    wire csrs__mie__ueip;
-    wire csrs__mie__mtip;
-    wire csrs__mie__stip;
-    wire csrs__mie__utip;
-    wire csrs__mie__msip;
-    wire csrs__mie__ssip;
-    wire csrs__mie__usip;
-    wire [3:0]csrs__dcsr__xdebug_ver;
-    wire csrs__dcsr__ebreakm;
-    wire csrs__dcsr__ebreaks;
-    wire csrs__dcsr__ebreaku;
-    wire csrs__dcsr__stepie;
-    wire csrs__dcsr__stopcount;
-    wire csrs__dcsr__stoptime;
-    wire [2:0]csrs__dcsr__cause;
-    wire csrs__dcsr__mprven;
-    wire csrs__dcsr__nmip;
-    wire csrs__dcsr__step;
-    wire [1:0]csrs__dcsr__prv;
-    wire [31:0]csrs__depc;
-    wire [31:0]csrs__dscratch0;
-    wire [31:0]csrs__dscratch1;
-    wire csr_access__access_cancelled;
-    wire [2:0]csr_access__access;
-    wire [11:0]csr_access__address;
-    wire [31:0]csr_access__write_data;
-    wire [31:0]csr_data__read_data;
-    wire csr_data__take_interrupt;
-    wire [2:0]csr_data__interrupt_mode;
-    wire [3:0]csr_data__interrupt_cause;
-    wire csr_data__illegal_access;
-    wire [2:0]csr_controls__exec_mode;
-    wire csr_controls__retire;
-    wire [63:0]csr_controls__timer_value;
-    wire csr_controls__trap__valid;
-    wire [2:0]csr_controls__trap__to_mode;
-    wire [3:0]csr_controls__trap__cause;
-    wire [31:0]csr_controls__trap__pc;
-    wire [31:0]csr_controls__trap__value;
-    wire csr_controls__trap__ret;
-    wire csr_controls__trap__vector;
-    wire csr_controls__trap__ebreak_to_dbg;
-    wire rv_imem_access_req__flush_pipeline;
-    wire [2:0]rv_imem_access_req__req_type;
-    wire rv_imem_access_req__debug_fetch;
-    wire [31:0]rv_imem_access_req__address;
-    wire [2:0]rv_imem_access_req__mode;
-    wire rv_imem_access_req__predicted_branch;
-    wire [31:0]rv_imem_access_req__pc_if_mispredicted;
-    wire dmem_access_req__valid;
-    wire [4:0]dmem_access_req__req_type;
-    wire [31:0]dmem_access_req__address;
-    wire dmem_access_req__sequential;
-    wire [3:0]dmem_access_req__byte_enable;
-    wire [31:0]dmem_access_req__write_data;
-    wire debug_tgt0__valid;
-    wire [5:0]debug_tgt0__selected;
-    wire debug_tgt0__halted;
-    wire debug_tgt0__resumed;
-    wire debug_tgt0__hit_breakpoint;
-    wire debug_tgt0__op_was_none;
-    wire [1:0]debug_tgt0__resp;
-    wire [31:0]debug_tgt0__data;
-    wire debug_tgt0__attention;
-    wire debug_mst__valid;
-    wire [5:0]debug_mst__select;
-    wire [5:0]debug_mst__mask;
-    wire [3:0]debug_mst__op;
-    wire [15:0]debug_mst__arg;
-    wire [31:0]debug_mst__data;
-        //   APB response
-    wire [31:0]apb_response__prdata;
-    wire apb_response__pready;
-    wire apb_response__perr;
-        //   APB request
-    wire [31:0]apb_request__paddr;
-    wire apb_request__penable;
-    wire apb_request__psel;
-    wire apb_request__pwrite;
-    wire [31:0]apb_request__pwdata;
-    //wire tck_enable;
-    wire [49:0]dr_out;
-    wire [49:0]dr_tdi_mask;
-    wire [49:0]dr_in;
-    wire [1:0]dr_action;
-    wire [4:0]ir;
-    //wire tdo;
-    //wire jtag__ntrst;
-    //wire jtag__tms;
-    //wire jtag__tdi;
+    wire uart_status__tx_empty;
+    wire uart_status__rx_not_empty;
+    wire uart_status__rx_half_full;
+    wire uart_status__rx_parity_error;
+    wire uart_status__rx_framing_error;
+    wire uart_status__rx_overflow;
+    wire [63:0]timer_value__value;
+    wire timer_value__irq;
+    wire timer_value__locked;
+    wire [31:0]th_apb_response__prdata;
+    wire th_apb_response__pready;
+    wire th_apb_response__perr;
+    wire [31:0]data_access_apb_response__prdata;
+    wire data_access_apb_response__pready;
+    wire data_access_apb_response__perr;
+    wire [31:0]uart_apb_response__prdata;
+    wire uart_apb_response__pready;
+    wire uart_apb_response__perr;
+    wire [31:0]debug_apb_response__prdata;
+    wire debug_apb_response__pready;
+    wire debug_apb_response__perr;
+    wire [31:0]sram_apb_response__prdata;
+    wire sram_apb_response__pready;
+    wire sram_apb_response__perr;
+    wire [31:0]timer_apb_response__prdata;
+    wire timer_apb_response__pready;
+    wire timer_apb_response__perr;
+    wire [31:0]mux_apb_request__paddr;
+    wire mux_apb_request__penable;
+    wire mux_apb_request__psel;
+    wire mux_apb_request__pwrite;
+    wire [31:0]mux_apb_request__pwdata;
+    wire [31:0]data_access_apb_request__paddr;
+    wire data_access_apb_request__penable;
+    wire data_access_apb_request__psel;
+    wire data_access_apb_request__pwrite;
+    wire [31:0]data_access_apb_request__pwdata;
+    wire [31:0]jtag_apb_request__paddr;
+    wire jtag_apb_request__penable;
+    wire jtag_apb_request__psel;
+    wire jtag_apb_request__pwrite;
+    wire [31:0]jtag_apb_request__pwdata;
+    wire [31:0]sram_ctrl;
+    wire data_access_req__valid;
+    wire [2:0]data_access_req__mode;
+    wire [4:0]data_access_req__req_type;
+    wire [31:0]data_access_req__address;
+    wire data_access_req__sequential;
+    wire [3:0]data_access_req__byte_enable;
+    wire [31:0]data_access_req__write_data;
+    wire data_access_resp__ack_if_seq;
+    wire data_access_resp__ack;
+    wire data_access_resp__abort_req;
+    wire data_access_resp__may_still_abort;
+    wire data_access_resp__access_complete;
+    wire [31:0]data_access_resp__read_data;
+    wire sram_access_req__valid;
+    wire [7:0]sram_access_req__id;
+    wire sram_access_req__read_not_write;
+    wire [7:0]sram_access_req__byte_enable;
+    wire [31:0]sram_access_req__address;
+    wire [63:0]sram_access_req__write_data;
+    wire sram_access_resp__ack;
+    wire sram_access_resp__valid;
+    wire [7:0]sram_access_resp__id;
+    wire [63:0]sram_access_resp__data;
 
     //b Clock gating module instances
-    assign riscv_clk__enable = (clk__enable && riscv_clk_cycle_2);
-    assign jtag_tck_gated__enable = (jtag_tck__enable && tck_enable_fix);
+    assign jtag_tck_gated__enable = (jtag_tck_enable && tck_enable_fix);
     //b Module instances
-    /*
-    se_sram_srw_16384x32 imem(
-        .sram_clock(clk),
-        .sram_clock__enable(1'b1),
-        .write_data(32'h0),
-        .address(imem_access_req__address[15:2]),
-        .write_enable(1'h1),
-        .read_not_write(1'h1),
-        .select(((imem_access_req__req_type!=3'h0) & ((riscv_clk_cycle_0!=1'h0)||(riscv_clk_cycle_1!=1'h0)))),
-        .data_out(            imem_mem_read_data)         );
-    se_sram_srw_16384x32_we8 dmem(
-        .sram_clock(clk),
-        .sram_clock__enable(1'b1),
-        .write_data(dmem_write_data),
-        .address(dmem_address),
-        .write_enable(4'hf),
-        .read_not_write(dmem_read_not_write),
-        .select(dmem_select),
-        .data_out(            main_mem_read_data)         );
-    */
-    se_sram_mrw_2 #(.address_width(16),.data_width(32)) 
-    mem(
-    .sram_clock_0(clk),
-    .sram_clock_0__enable(1'b1),
-    .write_data_0(32'h0),
-    .address_0(imem_access_req__address[15:2]),
-    .read_not_write_0(1'h1),
-    .select_0(((imem_access_req__req_type!=3'h0) & ((riscv_clk_cycle_0!=1'h0)||(riscv_clk_cycle_1!=1'h0)))),
-    .data_out_0(imem_mem_read_data),
-    .sram_clock_1(clk),
-    .sram_clock_1__enable(1'b1),
-    .write_data_1(dmem_write_data),
-    .address_1(dmem_address),
-    .read_not_write_1(dmem_read_not_write),
-    .select_1(dmem_select),
-    .data_out_1(main_mem_read_data)
-    
-    );
-    /*se_test_harness th(
-        .clk(jtag_tck),
+    riscv_i32_minimal_apb rv_apb(
+        .clk(clk),
         .clk__enable(1'b1),
-        .tdo(tdo),
-        .tck_enable(            tck_enable),
-        .jtag__tdi(            jtag__tdi),
-        .jtag__tms(            jtag__tms),
-        .jtag__ntrst(            jtag__ntrst)         );*/
+        .apb_response__perr(data_access_apb_response__perr),
+        .apb_response__pready(data_access_apb_response__pready),
+        .apb_response__prdata(data_access_apb_response__prdata),
+        .data_access_req__write_data(data_access_req__write_data),
+        .data_access_req__byte_enable(data_access_req__byte_enable),
+        .data_access_req__sequential(data_access_req__sequential),
+        .data_access_req__address(data_access_req__address),
+        .data_access_req__req_type(data_access_req__req_type),
+        .data_access_req__mode(data_access_req__mode),
+        .data_access_req__valid(data_access_req__valid),
+        .reset_n(reset_n),
+        .apb_request__pwdata(            data_access_apb_request__pwdata),
+        .apb_request__pwrite(            data_access_apb_request__pwrite),
+        .apb_request__psel(            data_access_apb_request__psel),
+        .apb_request__penable(            data_access_apb_request__penable),
+        .apb_request__paddr(            data_access_apb_request__paddr),
+        .data_access_resp__read_data(            data_access_resp__read_data),
+        .data_access_resp__access_complete(            data_access_resp__access_complete),
+        .data_access_resp__may_still_abort(            data_access_resp__may_still_abort),
+        .data_access_resp__abort_req(            data_access_resp__abort_req),
+        .data_access_resp__ack(            data_access_resp__ack),
+        .data_access_resp__ack_if_seq(            data_access_resp__ack_if_seq)         );
+    apb_master_mux apbmux(
+        .clk(clk),
+        .clk__enable(1'b1),
+        .apb_response__perr(mux_apb_response__perr),
+        .apb_response__pready(mux_apb_response__pready),
+        .apb_response__prdata(mux_apb_response__prdata),
+        .apb_request_1__pwdata(th_apb_request__pwdata),
+        .apb_request_1__pwrite(th_apb_request__pwrite),
+        .apb_request_1__psel(th_apb_request__psel),
+        .apb_request_1__penable(th_apb_request__penable),
+        .apb_request_1__paddr(th_apb_request__paddr),
+        .apb_request_0__pwdata(data_access_apb_request__pwdata),
+        .apb_request_0__pwrite(data_access_apb_request__pwrite),
+        .apb_request_0__psel(data_access_apb_request__psel),
+        .apb_request_0__penable(data_access_apb_request__penable),
+        .apb_request_0__paddr(data_access_apb_request__paddr),
+        .reset_n(reset_n),
+        .apb_request__pwdata(            mux_apb_request__pwdata),
+        .apb_request__pwrite(            mux_apb_request__pwrite),
+        .apb_request__psel(            mux_apb_request__psel),
+        .apb_request__penable(            mux_apb_request__penable),
+        .apb_request__paddr(            mux_apb_request__paddr),
+        .apb_response_1__perr(            th_apb_response__perr),
+        .apb_response_1__pready(            th_apb_response__pready),
+        .apb_response_1__prdata(            th_apb_response__prdata),
+        .apb_response_0__perr(            data_access_apb_response__perr),
+        .apb_response_0__pready(            data_access_apb_response__pready),
+        .apb_response_0__prdata(            data_access_apb_response__prdata)         );
+    apb_target_rv_timer timer(
+        .clk(clk),
+        .clk__enable(1'b1),
+        .apb_request__pwdata(timer_apb_request__pwdata),
+        .apb_request__pwrite(timer_apb_request__pwrite),
+        .apb_request__psel(timer_apb_request__psel),
+        .apb_request__penable(timer_apb_request__penable),
+        .apb_request__paddr(timer_apb_request__paddr),
+        .timer_control__integer_adder(timer_control__integer_adder),
+        .timer_control__fractional_adder(timer_control__fractional_adder),
+        .timer_control__bonus_subfraction_sub(timer_control__bonus_subfraction_sub),
+        .timer_control__bonus_subfraction_add(timer_control__bonus_subfraction_add),
+        .timer_control__block_writes(timer_control__block_writes),
+        .timer_control__synchronize_value(timer_control__synchronize_value),
+        .timer_control__synchronize(timer_control__synchronize),
+        .timer_control__lock_window_lsb(timer_control__lock_window_lsb),
+        .timer_control__lock_to_master(timer_control__lock_to_master),
+        .timer_control__retard(timer_control__retard),
+        .timer_control__advance(timer_control__advance),
+        .timer_control__enable_counter(timer_control__enable_counter),
+        .timer_control__reset_counter(timer_control__reset_counter),
+        .reset_n(reset_n),
+        .timer_value__locked(            timer_value__locked),
+        .timer_value__irq(            timer_value__irq),
+        .timer_value__value(            timer_value__value),
+        .apb_response__perr(            timer_apb_response__perr),
+        .apb_response__pready(            timer_apb_response__pready),
+        .apb_response__prdata(            timer_apb_response__prdata)         );
+    apb_target_sram_interface sram_if(
+        .clk(clk),
+        .clk__enable(1'b1),
+        .sram_access_resp__data(sram_access_resp__data),
+        .sram_access_resp__id(sram_access_resp__id),
+        .sram_access_resp__valid(sram_access_resp__valid),
+        .sram_access_resp__ack(sram_access_resp__ack),
+        .apb_request__pwdata(sram_apb_request__pwdata),
+        .apb_request__pwrite(sram_apb_request__pwrite),
+        .apb_request__psel(sram_apb_request__psel),
+        .apb_request__penable(sram_apb_request__penable),
+        .apb_request__paddr(sram_apb_request__paddr),
+        .reset_n(reset_n),
+        .sram_access_req__write_data(            sram_access_req__write_data),
+        .sram_access_req__address(            sram_access_req__address),
+        .sram_access_req__byte_enable(            sram_access_req__byte_enable),
+        .sram_access_req__read_not_write(            sram_access_req__read_not_write),
+        .sram_access_req__id(            sram_access_req__id),
+        .sram_access_req__valid(            sram_access_req__valid),
+        .sram_ctrl(            sram_ctrl),
+        .apb_response__perr(            sram_apb_response__perr),
+        .apb_response__pready(            sram_apb_response__pready),
+        .apb_response__prdata(            sram_apb_response__prdata)         );
+    apb_target_uart_minimal uart(
+        .clk(clk),
+        .clk__enable(1'b1),
+        .uart_rx__rts(uart_rx_rts),
+        .uart_rx__rxd(uart_rx_rxd),
+        .apb_request__pwdata(uart_apb_request__pwdata),
+        .apb_request__pwrite(uart_apb_request__pwrite),
+        .apb_request__psel(uart_apb_request__psel),
+        .apb_request__penable(uart_apb_request__penable),
+        .apb_request__paddr(uart_apb_request__paddr),
+        .reset_n(reset_n),
+        .status__rx_overflow(            uart_status__rx_overflow),
+        .status__rx_framing_error(            uart_status__rx_framing_error),
+        .status__rx_parity_error(            uart_status__rx_parity_error),
+        .status__rx_half_full(            uart_status__rx_half_full),
+        .status__rx_not_empty(            uart_status__rx_not_empty),
+        .status__tx_empty(            uart_status__tx_empty),
+        .uart_tx__cts(            uart_tx_cts),
+        .uart_tx__txd(            uart_tx_txd),
+        .apb_response__perr(            uart_apb_response__perr),
+        .apb_response__pready(            uart_apb_response__pready),
+        .apb_response__prdata(            uart_apb_response__prdata)         );
     jtag_tap tap(
         .jtag_tck(jtag_tck),
         .jtag_tck__enable(jtag_tck_gated__enable),
@@ -438,7 +366,7 @@ module top
         .dr_tdi_mask(dr_tdi_mask),
         .jtag__tdi(jtag_tdi),
         .jtag__tms(jtag_tms),
-        .jtag__ntrst(jtag__ntrst),
+        .jtag__ntrst(jtag_ntrst),
         .reset_n(reset_n),
         .dr_in(            dr_in),
         .dr_action(            dr_action),
@@ -449,23 +377,24 @@ module top
         .apb_clock__enable(1'b1),
         .jtag_tck(jtag_tck),
         .jtag_tck__enable(jtag_tck_gated__enable),
-        .apb_response__perr(apb_response__perr),
-        .apb_response__pready(apb_response__pready),
-        .apb_response__prdata(apb_response__prdata),
+        .apb_response__perr(jtag_apb_response__perr),
+        .apb_response__pready(jtag_apb_response__pready),
+        .apb_response__prdata(jtag_apb_response__prdata),
         .dr_in(dr_in),
         .dr_action(dr_action),
         .ir(ir),
         .reset_n(reset_n),
-        .apb_request__pwdata(            apb_request__pwdata),
-        .apb_request__pwrite(            apb_request__pwrite),
-        .apb_request__psel(            apb_request__psel),
-        .apb_request__penable(            apb_request__penable),
-        .apb_request__paddr(            apb_request__paddr),
+        .apb_request__pwdata(            jtag_apb_request__pwdata),
+        .apb_request__pwrite(            jtag_apb_request__pwrite),
+        .apb_request__psel(            jtag_apb_request__psel),
+        .apb_request__penable(            jtag_apb_request__penable),
+        .apb_request__paddr(            jtag_apb_request__paddr),
         .dr_out(            dr_out),
         .dr_tdi_mask(            dr_tdi_mask)         );
     riscv_i32_debug dm(
         .clk(clk),
         .clk__enable(1'b1),
+        .debug_tgt__mask(debug_tgt__mask),
         .debug_tgt__attention(debug_tgt__attention),
         .debug_tgt__data(debug_tgt__data),
         .debug_tgt__resp(debug_tgt__resp),
@@ -475,11 +404,11 @@ module top
         .debug_tgt__halted(debug_tgt__halted),
         .debug_tgt__selected(debug_tgt__selected),
         .debug_tgt__valid(debug_tgt__valid),
-        .apb_request__pwdata(apb_request__pwdata),
-        .apb_request__pwrite(apb_request__pwrite),
-        .apb_request__psel(apb_request__psel),
-        .apb_request__penable(apb_request__penable),
-        .apb_request__paddr(apb_request__paddr),
+        .apb_request__pwdata(debug_apb_request__pwdata),
+        .apb_request__pwrite(debug_apb_request__pwrite),
+        .apb_request__psel(debug_apb_request__psel),
+        .apb_request__penable(debug_apb_request__penable),
+        .apb_request__paddr(debug_apb_request__paddr),
         .reset_n(reset_n),
         .debug_mst__data(            debug_mst__data),
         .debug_mst__arg(            debug_mst__arg),
@@ -487,454 +416,47 @@ module top
         .debug_mst__mask(            debug_mst__mask),
         .debug_mst__select(            debug_mst__select),
         .debug_mst__valid(            debug_mst__valid),
-        .apb_response__perr(            apb_response__perr),
-        .apb_response__pready(            apb_response__pready),
-        .apb_response__prdata(            apb_response__prdata)         );
-    riscv_i32_pipeline_control pc(
+        .apb_response__perr(            debug_apb_response__perr),
+        .apb_response__pready(            debug_apb_response__pready),
+        .apb_response__prdata(            debug_apb_response__prdata)         );
+    riscv_i32_minimal dut(
         .clk(clk),
         .clk__enable(1'b1),
-        .rv_select(6'h0),
+        .riscv_config__mem_abort_late(riscv_config__mem_abort_late),
+        .riscv_config__unaligned_mem(riscv_config__unaligned_mem),
+        .riscv_config__coproc_disable(riscv_config__coproc_disable),
+        .riscv_config__debug_enable(riscv_config__debug_enable),
+        .riscv_config__i32m_fuse(riscv_config__i32m_fuse),
+        .riscv_config__i32m(riscv_config__i32m),
+        .riscv_config__e32(riscv_config__e32),
+        .riscv_config__i32c(riscv_config__i32c),
         .debug_mst__data(debug_mst__data),
         .debug_mst__arg(debug_mst__arg),
         .debug_mst__op(debug_mst__op),
         .debug_mst__mask(debug_mst__mask),
         .debug_mst__select(debug_mst__select),
         .debug_mst__valid(debug_mst__valid),
-        .trace__bkpt_reason(trace__bkpt_reason),
-        .trace__bkpt_valid(trace__bkpt_valid),
-        .trace__rfw_data(trace__rfw_data),
-        .trace__rfw_rd(trace__rfw_rd),
-        .trace__rfw_data_valid(trace__rfw_data_valid),
-        .trace__rfw_retire(trace__rfw_retire),
-        .trace__jalr(trace__jalr),
-        .trace__ret(trace__ret),
-        .trace__trap(trace__trap),
-        .trace__branch_target(trace__branch_target),
-        .trace__branch_taken(trace__branch_taken),
-        .trace__instruction(trace__instruction),
-        .trace__instr_pc(trace__instr_pc),
-        .trace__mode(trace__mode),
-        .trace__instr_valid(trace__instr_valid),
-        .riscv_config__unaligned_mem(riscv_config__unaligned_mem),
-        .riscv_config__coproc_disable(riscv_config__coproc_disable),
-        .riscv_config__debug_enable(riscv_config__debug_enable),
-        .riscv_config__i32m_fuse(riscv_config__i32m_fuse),
-        .riscv_config__i32m(riscv_config__i32m),
-        .riscv_config__e32(riscv_config__e32),
-        .riscv_config__i32c(riscv_config__i32c),
-        .pipeline_fetch_data__dec_pc_if_mispredicted(pipeline_fetch_data__dec_pc_if_mispredicted),
-        .pipeline_fetch_data__dec_predicted_branch(pipeline_fetch_data__dec_predicted_branch),
-        .pipeline_fetch_data__dec_flush_pipeline(pipeline_fetch_data__dec_flush_pipeline),
-        .pipeline_fetch_data__instruction__debug__data(pipeline_fetch_data__instruction__debug__data),
-        .pipeline_fetch_data__instruction__debug__debug_op(pipeline_fetch_data__instruction__debug__debug_op),
-        .pipeline_fetch_data__instruction__debug__valid(pipeline_fetch_data__instruction__debug__valid),
-        .pipeline_fetch_data__instruction__data(pipeline_fetch_data__instruction__data),
-        .pipeline_fetch_data__pc(pipeline_fetch_data__pc),
-        .pipeline_fetch_data__valid(pipeline_fetch_data__valid),
-        .pipeline_response__pipeline_empty(pipeline_response__pipeline_empty),
-        .pipeline_response__rfw__data(pipeline_response__rfw__data),
-        .pipeline_response__rfw__rd(pipeline_response__rfw__rd),
-        .pipeline_response__rfw__rd_written(pipeline_response__rfw__rd_written),
-        .pipeline_response__rfw__valid(pipeline_response__rfw__valid),
-        .pipeline_response__exec__pc_if_mispredicted(pipeline_response__exec__pc_if_mispredicted),
-        .pipeline_response__exec__predicted_branch(pipeline_response__exec__predicted_branch),
-        .pipeline_response__exec__pc(pipeline_response__exec__pc),
-        .pipeline_response__exec__rs2(pipeline_response__exec__rs2),
-        .pipeline_response__exec__rs1(pipeline_response__exec__rs1),
-        .pipeline_response__exec__instruction__debug__data(pipeline_response__exec__instruction__debug__data),
-        .pipeline_response__exec__instruction__debug__debug_op(pipeline_response__exec__instruction__debug__debug_op),
-        .pipeline_response__exec__instruction__debug__valid(pipeline_response__exec__instruction__debug__valid),
-        .pipeline_response__exec__instruction__data(pipeline_response__exec__instruction__data),
-        .pipeline_response__exec__is_compressed(pipeline_response__exec__is_compressed),
-        .pipeline_response__exec__trap__ebreak_to_dbg(pipeline_response__exec__trap__ebreak_to_dbg),
-        .pipeline_response__exec__trap__vector(pipeline_response__exec__trap__vector),
-        .pipeline_response__exec__trap__ret(pipeline_response__exec__trap__ret),
-        .pipeline_response__exec__trap__value(pipeline_response__exec__trap__value),
-        .pipeline_response__exec__trap__pc(pipeline_response__exec__trap__pc),
-        .pipeline_response__exec__trap__cause(pipeline_response__exec__trap__cause),
-        .pipeline_response__exec__trap__to_mode(pipeline_response__exec__trap__to_mode),
-        .pipeline_response__exec__trap__valid(pipeline_response__exec__trap__valid),
-        .pipeline_response__exec__jalr(pipeline_response__exec__jalr),
-        .pipeline_response__exec__branch_taken(pipeline_response__exec__branch_taken),
-        .pipeline_response__exec__interrupt_ack(pipeline_response__exec__interrupt_ack),
-        .pipeline_response__exec__cannot_complete(pipeline_response__exec__cannot_complete),
-        .pipeline_response__exec__cannot_start(pipeline_response__exec__cannot_start),
-        .pipeline_response__exec__valid(pipeline_response__exec__valid),
-        .pipeline_response__decode__enable_branch_prediction(pipeline_response__decode__enable_branch_prediction),
-        .pipeline_response__decode__idecode__ext__dummy(pipeline_response__decode__idecode__ext__dummy),
-        .pipeline_response__decode__idecode__is_compressed(pipeline_response__decode__idecode__is_compressed),
-        .pipeline_response__decode__idecode__illegal_pc(pipeline_response__decode__idecode__illegal_pc),
-        .pipeline_response__decode__idecode__illegal(pipeline_response__decode__idecode__illegal),
-        .pipeline_response__decode__idecode__minimum_mode(pipeline_response__decode__idecode__minimum_mode),
-        .pipeline_response__decode__idecode__funct7(pipeline_response__decode__idecode__funct7),
-        .pipeline_response__decode__idecode__subop(pipeline_response__decode__idecode__subop),
-        .pipeline_response__decode__idecode__op(pipeline_response__decode__idecode__op),
-        .pipeline_response__decode__idecode__immediate_valid(pipeline_response__decode__idecode__immediate_valid),
-        .pipeline_response__decode__idecode__immediate_shift(pipeline_response__decode__idecode__immediate_shift),
-        .pipeline_response__decode__idecode__immediate(pipeline_response__decode__idecode__immediate),
-        .pipeline_response__decode__idecode__csr_access__write_data(pipeline_response__decode__idecode__csr_access__write_data),
-        .pipeline_response__decode__idecode__csr_access__address(pipeline_response__decode__idecode__csr_access__address),
-        .pipeline_response__decode__idecode__csr_access__access(pipeline_response__decode__idecode__csr_access__access),
-        .pipeline_response__decode__idecode__csr_access__access_cancelled(pipeline_response__decode__idecode__csr_access__access_cancelled),
-        .pipeline_response__decode__idecode__rd_written(pipeline_response__decode__idecode__rd_written),
-        .pipeline_response__decode__idecode__rd(pipeline_response__decode__idecode__rd),
-        .pipeline_response__decode__idecode__rs2_valid(pipeline_response__decode__idecode__rs2_valid),
-        .pipeline_response__decode__idecode__rs2(pipeline_response__decode__idecode__rs2),
-        .pipeline_response__decode__idecode__rs1_valid(pipeline_response__decode__idecode__rs1_valid),
-        .pipeline_response__decode__idecode__rs1(pipeline_response__decode__idecode__rs1),
-        .pipeline_response__decode__branch_target(pipeline_response__decode__branch_target),
-        .pipeline_response__decode__pc(pipeline_response__decode__pc),
-        .pipeline_response__decode__blocked(pipeline_response__decode__blocked),
-        .pipeline_response__decode__valid(pipeline_response__decode__valid),
-        .csrs__dscratch1(csrs__dscratch1),
-        .csrs__dscratch0(csrs__dscratch0),
-        .csrs__depc(csrs__depc),
-        .csrs__dcsr__prv(csrs__dcsr__prv),
-        .csrs__dcsr__step(csrs__dcsr__step),
-        .csrs__dcsr__nmip(csrs__dcsr__nmip),
-        .csrs__dcsr__mprven(csrs__dcsr__mprven),
-        .csrs__dcsr__cause(csrs__dcsr__cause),
-        .csrs__dcsr__stoptime(csrs__dcsr__stoptime),
-        .csrs__dcsr__stopcount(csrs__dcsr__stopcount),
-        .csrs__dcsr__stepie(csrs__dcsr__stepie),
-        .csrs__dcsr__ebreaku(csrs__dcsr__ebreaku),
-        .csrs__dcsr__ebreaks(csrs__dcsr__ebreaks),
-        .csrs__dcsr__ebreakm(csrs__dcsr__ebreakm),
-        .csrs__dcsr__xdebug_ver(csrs__dcsr__xdebug_ver),
-        .csrs__mie__usip(csrs__mie__usip),
-        .csrs__mie__ssip(csrs__mie__ssip),
-        .csrs__mie__msip(csrs__mie__msip),
-        .csrs__mie__utip(csrs__mie__utip),
-        .csrs__mie__stip(csrs__mie__stip),
-        .csrs__mie__mtip(csrs__mie__mtip),
-        .csrs__mie__ueip(csrs__mie__ueip),
-        .csrs__mie__seip(csrs__mie__seip),
-        .csrs__mie__meip(csrs__mie__meip),
-        .csrs__mip__usip(csrs__mip__usip),
-        .csrs__mip__ssip(csrs__mip__ssip),
-        .csrs__mip__msip(csrs__mip__msip),
-        .csrs__mip__utip(csrs__mip__utip),
-        .csrs__mip__stip(csrs__mip__stip),
-        .csrs__mip__mtip(csrs__mip__mtip),
-        .csrs__mip__ueip_sw(csrs__mip__ueip_sw),
-        .csrs__mip__seip_sw(csrs__mip__seip_sw),
-        .csrs__mip__ueip(csrs__mip__ueip),
-        .csrs__mip__seip(csrs__mip__seip),
-        .csrs__mip__meip(csrs__mip__meip),
-        .csrs__mstatus__uie(csrs__mstatus__uie),
-        .csrs__mstatus__sie(csrs__mstatus__sie),
-        .csrs__mstatus__mie(csrs__mstatus__mie),
-        .csrs__mstatus__upie(csrs__mstatus__upie),
-        .csrs__mstatus__spie(csrs__mstatus__spie),
-        .csrs__mstatus__mpie(csrs__mstatus__mpie),
-        .csrs__mstatus__spp(csrs__mstatus__spp),
-        .csrs__mstatus__mpp(csrs__mstatus__mpp),
-        .csrs__mstatus__fs(csrs__mstatus__fs),
-        .csrs__mstatus__xs(csrs__mstatus__xs),
-        .csrs__mstatus__mprv(csrs__mstatus__mprv),
-        .csrs__mstatus__sum(csrs__mstatus__sum),
-        .csrs__mstatus__mxr(csrs__mstatus__mxr),
-        .csrs__mstatus__tvm(csrs__mstatus__tvm),
-        .csrs__mstatus__tw(csrs__mstatus__tw),
-        .csrs__mstatus__tsr(csrs__mstatus__tsr),
-        .csrs__mstatus__sd(csrs__mstatus__sd),
-        .csrs__mtvec__vectored(csrs__mtvec__vectored),
-        .csrs__mtvec__base(csrs__mtvec__base),
-        .csrs__mtval(csrs__mtval),
-        .csrs__mcause(csrs__mcause),
-        .csrs__mepc(csrs__mepc),
-        .csrs__mscratch(csrs__mscratch),
-        .csrs__time(csrs__time),
-        .csrs__instret(csrs__instret),
-        .csrs__cycles(csrs__cycles),
-        .riscv_clk_enable(riscv_clk_enable),
+        .sram_access_req__write_data(sram_access_req__write_data),
+        .sram_access_req__address(sram_access_req__address),
+        .sram_access_req__byte_enable(sram_access_req__byte_enable),
+        .sram_access_req__read_not_write(sram_access_req__read_not_write),
+        .sram_access_req__id(sram_access_req__id),
+        .sram_access_req__valid(sram_access_req__valid),
+        .data_access_resp__read_data(data_access_resp__read_data),
+        .data_access_resp__access_complete(data_access_resp__access_complete),
+        .data_access_resp__may_still_abort(data_access_resp__may_still_abort),
+        .data_access_resp__abort_req(data_access_resp__abort_req),
+        .data_access_resp__ack(data_access_resp__ack),
+        .data_access_resp__ack_if_seq(data_access_resp__ack_if_seq),
+        .irqs__time(irqs__time),
+        .irqs__msip(irqs__msip),
+        .irqs__mtip(irqs__mtip),
+        .irqs__ueip(irqs__ueip),
+        .irqs__seip(irqs__seip),
+        .irqs__meip(irqs__meip),
+        .irqs__nmi(irqs__nmi),
         .reset_n(reset_n),
-        .debug_tgt__attention(            debug_tgt0__attention),
-        .debug_tgt__data(            debug_tgt0__data),
-        .debug_tgt__resp(            debug_tgt0__resp),
-        .debug_tgt__op_was_none(            debug_tgt0__op_was_none),
-        .debug_tgt__hit_breakpoint(            debug_tgt0__hit_breakpoint),
-        .debug_tgt__resumed(            debug_tgt0__resumed),
-        .debug_tgt__halted(            debug_tgt0__halted),
-        .debug_tgt__selected(            debug_tgt0__selected),
-        .debug_tgt__valid(            debug_tgt0__valid),
-        .pipeline_control__instruction_debug__data(            pipeline_control__instruction_debug__data),
-        .pipeline_control__instruction_debug__debug_op(            pipeline_control__instruction_debug__debug_op),
-        .pipeline_control__instruction_debug__valid(            pipeline_control__instruction_debug__valid),
-        .pipeline_control__instruction_data(            pipeline_control__instruction_data),
-        .pipeline_control__interrupt_to_mode(            pipeline_control__interrupt_to_mode),
-        .pipeline_control__interrupt_number(            pipeline_control__interrupt_number),
-        .pipeline_control__interrupt_req(            pipeline_control__interrupt_req),
-        .pipeline_control__ebreak_to_dbg(            pipeline_control__ebreak_to_dbg),
-        .pipeline_control__halt(            pipeline_control__halt),
-        .pipeline_control__tag(            pipeline_control__tag),
-        .pipeline_control__error(            pipeline_control__error),
-        .pipeline_control__mode(            pipeline_control__mode),
-        .pipeline_control__fetch_pc(            pipeline_control__fetch_pc),
-        .pipeline_control__fetch_action(            pipeline_control__fetch_action),
-        .pipeline_control__valid(            pipeline_control__valid)         );
-    riscv_i32_pipeline_control_fetch_req pc_fetch_req(
-        .pipeline_response__pipeline_empty(pipeline_response__pipeline_empty),
-        .pipeline_response__rfw__data(pipeline_response__rfw__data),
-        .pipeline_response__rfw__rd(pipeline_response__rfw__rd),
-        .pipeline_response__rfw__rd_written(pipeline_response__rfw__rd_written),
-        .pipeline_response__rfw__valid(pipeline_response__rfw__valid),
-        .pipeline_response__exec__pc_if_mispredicted(pipeline_response__exec__pc_if_mispredicted),
-        .pipeline_response__exec__predicted_branch(pipeline_response__exec__predicted_branch),
-        .pipeline_response__exec__pc(pipeline_response__exec__pc),
-        .pipeline_response__exec__rs2(pipeline_response__exec__rs2),
-        .pipeline_response__exec__rs1(pipeline_response__exec__rs1),
-        .pipeline_response__exec__instruction__debug__data(pipeline_response__exec__instruction__debug__data),
-        .pipeline_response__exec__instruction__debug__debug_op(pipeline_response__exec__instruction__debug__debug_op),
-        .pipeline_response__exec__instruction__debug__valid(pipeline_response__exec__instruction__debug__valid),
-        .pipeline_response__exec__instruction__data(pipeline_response__exec__instruction__data),
-        .pipeline_response__exec__is_compressed(pipeline_response__exec__is_compressed),
-        .pipeline_response__exec__trap__ebreak_to_dbg(pipeline_response__exec__trap__ebreak_to_dbg),
-        .pipeline_response__exec__trap__vector(pipeline_response__exec__trap__vector),
-        .pipeline_response__exec__trap__ret(pipeline_response__exec__trap__ret),
-        .pipeline_response__exec__trap__value(pipeline_response__exec__trap__value),
-        .pipeline_response__exec__trap__pc(pipeline_response__exec__trap__pc),
-        .pipeline_response__exec__trap__cause(pipeline_response__exec__trap__cause),
-        .pipeline_response__exec__trap__to_mode(pipeline_response__exec__trap__to_mode),
-        .pipeline_response__exec__trap__valid(pipeline_response__exec__trap__valid),
-        .pipeline_response__exec__jalr(pipeline_response__exec__jalr),
-        .pipeline_response__exec__branch_taken(pipeline_response__exec__branch_taken),
-        .pipeline_response__exec__interrupt_ack(pipeline_response__exec__interrupt_ack),
-        .pipeline_response__exec__cannot_complete(pipeline_response__exec__cannot_complete),
-        .pipeline_response__exec__cannot_start(pipeline_response__exec__cannot_start),
-        .pipeline_response__exec__valid(pipeline_response__exec__valid),
-        .pipeline_response__decode__enable_branch_prediction(pipeline_response__decode__enable_branch_prediction),
-        .pipeline_response__decode__idecode__ext__dummy(pipeline_response__decode__idecode__ext__dummy),
-        .pipeline_response__decode__idecode__is_compressed(pipeline_response__decode__idecode__is_compressed),
-        .pipeline_response__decode__idecode__illegal_pc(pipeline_response__decode__idecode__illegal_pc),
-        .pipeline_response__decode__idecode__illegal(pipeline_response__decode__idecode__illegal),
-        .pipeline_response__decode__idecode__minimum_mode(pipeline_response__decode__idecode__minimum_mode),
-        .pipeline_response__decode__idecode__funct7(pipeline_response__decode__idecode__funct7),
-        .pipeline_response__decode__idecode__subop(pipeline_response__decode__idecode__subop),
-        .pipeline_response__decode__idecode__op(pipeline_response__decode__idecode__op),
-        .pipeline_response__decode__idecode__immediate_valid(pipeline_response__decode__idecode__immediate_valid),
-        .pipeline_response__decode__idecode__immediate_shift(pipeline_response__decode__idecode__immediate_shift),
-        .pipeline_response__decode__idecode__immediate(pipeline_response__decode__idecode__immediate),
-        .pipeline_response__decode__idecode__csr_access__write_data(pipeline_response__decode__idecode__csr_access__write_data),
-        .pipeline_response__decode__idecode__csr_access__address(pipeline_response__decode__idecode__csr_access__address),
-        .pipeline_response__decode__idecode__csr_access__access(pipeline_response__decode__idecode__csr_access__access),
-        .pipeline_response__decode__idecode__csr_access__access_cancelled(pipeline_response__decode__idecode__csr_access__access_cancelled),
-        .pipeline_response__decode__idecode__rd_written(pipeline_response__decode__idecode__rd_written),
-        .pipeline_response__decode__idecode__rd(pipeline_response__decode__idecode__rd),
-        .pipeline_response__decode__idecode__rs2_valid(pipeline_response__decode__idecode__rs2_valid),
-        .pipeline_response__decode__idecode__rs2(pipeline_response__decode__idecode__rs2),
-        .pipeline_response__decode__idecode__rs1_valid(pipeline_response__decode__idecode__rs1_valid),
-        .pipeline_response__decode__idecode__rs1(pipeline_response__decode__idecode__rs1),
-        .pipeline_response__decode__branch_target(pipeline_response__decode__branch_target),
-        .pipeline_response__decode__pc(pipeline_response__decode__pc),
-        .pipeline_response__decode__blocked(pipeline_response__decode__blocked),
-        .pipeline_response__decode__valid(pipeline_response__decode__valid),
-        .pipeline_control__instruction_debug__data(pipeline_control__instruction_debug__data),
-        .pipeline_control__instruction_debug__debug_op(pipeline_control__instruction_debug__debug_op),
-        .pipeline_control__instruction_debug__valid(pipeline_control__instruction_debug__valid),
-        .pipeline_control__instruction_data(pipeline_control__instruction_data),
-        .pipeline_control__interrupt_to_mode(pipeline_control__interrupt_to_mode),
-        .pipeline_control__interrupt_number(pipeline_control__interrupt_number),
-        .pipeline_control__interrupt_req(pipeline_control__interrupt_req),
-        .pipeline_control__ebreak_to_dbg(pipeline_control__ebreak_to_dbg),
-        .pipeline_control__halt(pipeline_control__halt),
-        .pipeline_control__tag(pipeline_control__tag),
-        .pipeline_control__error(pipeline_control__error),
-        .pipeline_control__mode(pipeline_control__mode),
-        .pipeline_control__fetch_pc(pipeline_control__fetch_pc),
-        .pipeline_control__fetch_action(pipeline_control__fetch_action),
-        .pipeline_control__valid(pipeline_control__valid),
-        .ifetch_req__pc_if_mispredicted(            rv_imem_access_req__pc_if_mispredicted),
-        .ifetch_req__predicted_branch(            rv_imem_access_req__predicted_branch),
-        .ifetch_req__mode(            rv_imem_access_req__mode),
-        .ifetch_req__address(            rv_imem_access_req__address),
-        .ifetch_req__debug_fetch(            rv_imem_access_req__debug_fetch),
-        .ifetch_req__req_type(            rv_imem_access_req__req_type),
-        .ifetch_req__flush_pipeline(            rv_imem_access_req__flush_pipeline)         );
-    riscv_i32_pipeline_control_fetch_data pc_fetch_data(
-        .pipeline_response__pipeline_empty(pipeline_response__pipeline_empty),
-        .pipeline_response__rfw__data(pipeline_response__rfw__data),
-        .pipeline_response__rfw__rd(pipeline_response__rfw__rd),
-        .pipeline_response__rfw__rd_written(pipeline_response__rfw__rd_written),
-        .pipeline_response__rfw__valid(pipeline_response__rfw__valid),
-        .pipeline_response__exec__pc_if_mispredicted(pipeline_response__exec__pc_if_mispredicted),
-        .pipeline_response__exec__predicted_branch(pipeline_response__exec__predicted_branch),
-        .pipeline_response__exec__pc(pipeline_response__exec__pc),
-        .pipeline_response__exec__rs2(pipeline_response__exec__rs2),
-        .pipeline_response__exec__rs1(pipeline_response__exec__rs1),
-        .pipeline_response__exec__instruction__debug__data(pipeline_response__exec__instruction__debug__data),
-        .pipeline_response__exec__instruction__debug__debug_op(pipeline_response__exec__instruction__debug__debug_op),
-        .pipeline_response__exec__instruction__debug__valid(pipeline_response__exec__instruction__debug__valid),
-        .pipeline_response__exec__instruction__data(pipeline_response__exec__instruction__data),
-        .pipeline_response__exec__is_compressed(pipeline_response__exec__is_compressed),
-        .pipeline_response__exec__trap__ebreak_to_dbg(pipeline_response__exec__trap__ebreak_to_dbg),
-        .pipeline_response__exec__trap__vector(pipeline_response__exec__trap__vector),
-        .pipeline_response__exec__trap__ret(pipeline_response__exec__trap__ret),
-        .pipeline_response__exec__trap__value(pipeline_response__exec__trap__value),
-        .pipeline_response__exec__trap__pc(pipeline_response__exec__trap__pc),
-        .pipeline_response__exec__trap__cause(pipeline_response__exec__trap__cause),
-        .pipeline_response__exec__trap__to_mode(pipeline_response__exec__trap__to_mode),
-        .pipeline_response__exec__trap__valid(pipeline_response__exec__trap__valid),
-        .pipeline_response__exec__jalr(pipeline_response__exec__jalr),
-        .pipeline_response__exec__branch_taken(pipeline_response__exec__branch_taken),
-        .pipeline_response__exec__interrupt_ack(pipeline_response__exec__interrupt_ack),
-        .pipeline_response__exec__cannot_complete(pipeline_response__exec__cannot_complete),
-        .pipeline_response__exec__cannot_start(pipeline_response__exec__cannot_start),
-        .pipeline_response__exec__valid(pipeline_response__exec__valid),
-        .pipeline_response__decode__enable_branch_prediction(pipeline_response__decode__enable_branch_prediction),
-        .pipeline_response__decode__idecode__ext__dummy(pipeline_response__decode__idecode__ext__dummy),
-        .pipeline_response__decode__idecode__is_compressed(pipeline_response__decode__idecode__is_compressed),
-        .pipeline_response__decode__idecode__illegal_pc(pipeline_response__decode__idecode__illegal_pc),
-        .pipeline_response__decode__idecode__illegal(pipeline_response__decode__idecode__illegal),
-        .pipeline_response__decode__idecode__minimum_mode(pipeline_response__decode__idecode__minimum_mode),
-        .pipeline_response__decode__idecode__funct7(pipeline_response__decode__idecode__funct7),
-        .pipeline_response__decode__idecode__subop(pipeline_response__decode__idecode__subop),
-        .pipeline_response__decode__idecode__op(pipeline_response__decode__idecode__op),
-        .pipeline_response__decode__idecode__immediate_valid(pipeline_response__decode__idecode__immediate_valid),
-        .pipeline_response__decode__idecode__immediate_shift(pipeline_response__decode__idecode__immediate_shift),
-        .pipeline_response__decode__idecode__immediate(pipeline_response__decode__idecode__immediate),
-        .pipeline_response__decode__idecode__csr_access__write_data(pipeline_response__decode__idecode__csr_access__write_data),
-        .pipeline_response__decode__idecode__csr_access__address(pipeline_response__decode__idecode__csr_access__address),
-        .pipeline_response__decode__idecode__csr_access__access(pipeline_response__decode__idecode__csr_access__access),
-        .pipeline_response__decode__idecode__csr_access__access_cancelled(pipeline_response__decode__idecode__csr_access__access_cancelled),
-        .pipeline_response__decode__idecode__rd_written(pipeline_response__decode__idecode__rd_written),
-        .pipeline_response__decode__idecode__rd(pipeline_response__decode__idecode__rd),
-        .pipeline_response__decode__idecode__rs2_valid(pipeline_response__decode__idecode__rs2_valid),
-        .pipeline_response__decode__idecode__rs2(pipeline_response__decode__idecode__rs2),
-        .pipeline_response__decode__idecode__rs1_valid(pipeline_response__decode__idecode__rs1_valid),
-        .pipeline_response__decode__idecode__rs1(pipeline_response__decode__idecode__rs1),
-        .pipeline_response__decode__branch_target(pipeline_response__decode__branch_target),
-        .pipeline_response__decode__pc(pipeline_response__decode__pc),
-        .pipeline_response__decode__blocked(pipeline_response__decode__blocked),
-        .pipeline_response__decode__valid(pipeline_response__decode__valid),
-        .ifetch_resp__tag(rv_imem_access_resp__tag),
-        .ifetch_resp__error(rv_imem_access_resp__error),
-        .ifetch_resp__mode(rv_imem_access_resp__mode),
-        .ifetch_resp__data(rv_imem_access_resp__data),
-        .ifetch_resp__debug(rv_imem_access_resp__debug),
-        .ifetch_resp__valid(rv_imem_access_resp__valid),
-        .ifetch_req__pc_if_mispredicted(rv_imem_access_req__pc_if_mispredicted),
-        .ifetch_req__predicted_branch(rv_imem_access_req__predicted_branch),
-        .ifetch_req__mode(rv_imem_access_req__mode),
-        .ifetch_req__address(rv_imem_access_req__address),
-        .ifetch_req__debug_fetch(rv_imem_access_req__debug_fetch),
-        .ifetch_req__req_type(rv_imem_access_req__req_type),
-        .ifetch_req__flush_pipeline(rv_imem_access_req__flush_pipeline),
-        .pipeline_control__instruction_debug__data(pipeline_control__instruction_debug__data),
-        .pipeline_control__instruction_debug__debug_op(pipeline_control__instruction_debug__debug_op),
-        .pipeline_control__instruction_debug__valid(pipeline_control__instruction_debug__valid),
-        .pipeline_control__instruction_data(pipeline_control__instruction_data),
-        .pipeline_control__interrupt_to_mode(pipeline_control__interrupt_to_mode),
-        .pipeline_control__interrupt_number(pipeline_control__interrupt_number),
-        .pipeline_control__interrupt_req(pipeline_control__interrupt_req),
-        .pipeline_control__ebreak_to_dbg(pipeline_control__ebreak_to_dbg),
-        .pipeline_control__halt(pipeline_control__halt),
-        .pipeline_control__tag(pipeline_control__tag),
-        .pipeline_control__error(pipeline_control__error),
-        .pipeline_control__mode(pipeline_control__mode),
-        .pipeline_control__fetch_pc(pipeline_control__fetch_pc),
-        .pipeline_control__fetch_action(pipeline_control__fetch_action),
-        .pipeline_control__valid(pipeline_control__valid),
-        .pipeline_fetch_data__dec_pc_if_mispredicted(            pipeline_fetch_data__dec_pc_if_mispredicted),
-        .pipeline_fetch_data__dec_predicted_branch(            pipeline_fetch_data__dec_predicted_branch),
-        .pipeline_fetch_data__dec_flush_pipeline(            pipeline_fetch_data__dec_flush_pipeline),
-        .pipeline_fetch_data__instruction__debug__data(            pipeline_fetch_data__instruction__debug__data),
-        .pipeline_fetch_data__instruction__debug__debug_op(            pipeline_fetch_data__instruction__debug__debug_op),
-        .pipeline_fetch_data__instruction__debug__valid(            pipeline_fetch_data__instruction__debug__valid),
-        .pipeline_fetch_data__instruction__data(            pipeline_fetch_data__instruction__data),
-        .pipeline_fetch_data__pc(            pipeline_fetch_data__pc),
-        .pipeline_fetch_data__valid(            pipeline_fetch_data__valid)         );
-    riscv_i32_pipeline_control_csr_trace pc_csr_trace(
-        .coproc_response__cannot_complete(coproc_response__cannot_complete),
-        .coproc_response__result_valid(coproc_response__result_valid),
-        .coproc_response__result(coproc_response__result),
-        .coproc_response__cannot_start(coproc_response__cannot_start),
-        .riscv_config__unaligned_mem(riscv_config__unaligned_mem),
-        .riscv_config__coproc_disable(riscv_config__coproc_disable),
-        .riscv_config__debug_enable(riscv_config__debug_enable),
-        .riscv_config__i32m_fuse(riscv_config__i32m_fuse),
-        .riscv_config__i32m(riscv_config__i32m),
-        .riscv_config__e32(riscv_config__e32),
-        .riscv_config__i32c(riscv_config__i32c),
-        .pipeline_fetch_data__dec_pc_if_mispredicted(pipeline_fetch_data__dec_pc_if_mispredicted),
-        .pipeline_fetch_data__dec_predicted_branch(pipeline_fetch_data__dec_predicted_branch),
-        .pipeline_fetch_data__dec_flush_pipeline(pipeline_fetch_data__dec_flush_pipeline),
-        .pipeline_fetch_data__instruction__debug__data(pipeline_fetch_data__instruction__debug__data),
-        .pipeline_fetch_data__instruction__debug__debug_op(pipeline_fetch_data__instruction__debug__debug_op),
-        .pipeline_fetch_data__instruction__debug__valid(pipeline_fetch_data__instruction__debug__valid),
-        .pipeline_fetch_data__instruction__data(pipeline_fetch_data__instruction__data),
-        .pipeline_fetch_data__pc(pipeline_fetch_data__pc),
-        .pipeline_fetch_data__valid(pipeline_fetch_data__valid),
-        .pipeline_response__pipeline_empty(pipeline_response__pipeline_empty),
-        .pipeline_response__rfw__data(pipeline_response__rfw__data),
-        .pipeline_response__rfw__rd(pipeline_response__rfw__rd),
-        .pipeline_response__rfw__rd_written(pipeline_response__rfw__rd_written),
-        .pipeline_response__rfw__valid(pipeline_response__rfw__valid),
-        .pipeline_response__exec__pc_if_mispredicted(pipeline_response__exec__pc_if_mispredicted),
-        .pipeline_response__exec__predicted_branch(pipeline_response__exec__predicted_branch),
-        .pipeline_response__exec__pc(pipeline_response__exec__pc),
-        .pipeline_response__exec__rs2(pipeline_response__exec__rs2),
-        .pipeline_response__exec__rs1(pipeline_response__exec__rs1),
-        .pipeline_response__exec__instruction__debug__data(pipeline_response__exec__instruction__debug__data),
-        .pipeline_response__exec__instruction__debug__debug_op(pipeline_response__exec__instruction__debug__debug_op),
-        .pipeline_response__exec__instruction__debug__valid(pipeline_response__exec__instruction__debug__valid),
-        .pipeline_response__exec__instruction__data(pipeline_response__exec__instruction__data),
-        .pipeline_response__exec__is_compressed(pipeline_response__exec__is_compressed),
-        .pipeline_response__exec__trap__ebreak_to_dbg(pipeline_response__exec__trap__ebreak_to_dbg),
-        .pipeline_response__exec__trap__vector(pipeline_response__exec__trap__vector),
-        .pipeline_response__exec__trap__ret(pipeline_response__exec__trap__ret),
-        .pipeline_response__exec__trap__value(pipeline_response__exec__trap__value),
-        .pipeline_response__exec__trap__pc(pipeline_response__exec__trap__pc),
-        .pipeline_response__exec__trap__cause(pipeline_response__exec__trap__cause),
-        .pipeline_response__exec__trap__to_mode(pipeline_response__exec__trap__to_mode),
-        .pipeline_response__exec__trap__valid(pipeline_response__exec__trap__valid),
-        .pipeline_response__exec__jalr(pipeline_response__exec__jalr),
-        .pipeline_response__exec__branch_taken(pipeline_response__exec__branch_taken),
-        .pipeline_response__exec__interrupt_ack(pipeline_response__exec__interrupt_ack),
-        .pipeline_response__exec__cannot_complete(pipeline_response__exec__cannot_complete),
-        .pipeline_response__exec__cannot_start(pipeline_response__exec__cannot_start),
-        .pipeline_response__exec__valid(pipeline_response__exec__valid),
-        .pipeline_response__decode__enable_branch_prediction(pipeline_response__decode__enable_branch_prediction),
-        .pipeline_response__decode__idecode__ext__dummy(pipeline_response__decode__idecode__ext__dummy),
-        .pipeline_response__decode__idecode__is_compressed(pipeline_response__decode__idecode__is_compressed),
-        .pipeline_response__decode__idecode__illegal_pc(pipeline_response__decode__idecode__illegal_pc),
-        .pipeline_response__decode__idecode__illegal(pipeline_response__decode__idecode__illegal),
-        .pipeline_response__decode__idecode__minimum_mode(pipeline_response__decode__idecode__minimum_mode),
-        .pipeline_response__decode__idecode__funct7(pipeline_response__decode__idecode__funct7),
-        .pipeline_response__decode__idecode__subop(pipeline_response__decode__idecode__subop),
-        .pipeline_response__decode__idecode__op(pipeline_response__decode__idecode__op),
-        .pipeline_response__decode__idecode__immediate_valid(pipeline_response__decode__idecode__immediate_valid),
-        .pipeline_response__decode__idecode__immediate_shift(pipeline_response__decode__idecode__immediate_shift),
-        .pipeline_response__decode__idecode__immediate(pipeline_response__decode__idecode__immediate),
-        .pipeline_response__decode__idecode__csr_access__write_data(pipeline_response__decode__idecode__csr_access__write_data),
-        .pipeline_response__decode__idecode__csr_access__address(pipeline_response__decode__idecode__csr_access__address),
-        .pipeline_response__decode__idecode__csr_access__access(pipeline_response__decode__idecode__csr_access__access),
-        .pipeline_response__decode__idecode__csr_access__access_cancelled(pipeline_response__decode__idecode__csr_access__access_cancelled),
-        .pipeline_response__decode__idecode__rd_written(pipeline_response__decode__idecode__rd_written),
-        .pipeline_response__decode__idecode__rd(pipeline_response__decode__idecode__rd),
-        .pipeline_response__decode__idecode__rs2_valid(pipeline_response__decode__idecode__rs2_valid),
-        .pipeline_response__decode__idecode__rs2(pipeline_response__decode__idecode__rs2),
-        .pipeline_response__decode__idecode__rs1_valid(pipeline_response__decode__idecode__rs1_valid),
-        .pipeline_response__decode__idecode__rs1(pipeline_response__decode__idecode__rs1),
-        .pipeline_response__decode__branch_target(pipeline_response__decode__branch_target),
-        .pipeline_response__decode__pc(pipeline_response__decode__pc),
-        .pipeline_response__decode__blocked(pipeline_response__decode__blocked),
-        .pipeline_response__decode__valid(pipeline_response__decode__valid),
-        .pipeline_control__instruction_debug__data(pipeline_control__instruction_debug__data),
-        .pipeline_control__instruction_debug__debug_op(pipeline_control__instruction_debug__debug_op),
-        .pipeline_control__instruction_debug__valid(pipeline_control__instruction_debug__valid),
-        .pipeline_control__instruction_data(pipeline_control__instruction_data),
-        .pipeline_control__interrupt_to_mode(pipeline_control__interrupt_to_mode),
-        .pipeline_control__interrupt_number(pipeline_control__interrupt_number),
-        .pipeline_control__interrupt_req(pipeline_control__interrupt_req),
-        .pipeline_control__ebreak_to_dbg(pipeline_control__ebreak_to_dbg),
-        .pipeline_control__halt(pipeline_control__halt),
-        .pipeline_control__tag(pipeline_control__tag),
-        .pipeline_control__error(pipeline_control__error),
-        .pipeline_control__mode(pipeline_control__mode),
-        .pipeline_control__fetch_pc(pipeline_control__fetch_pc),
-        .pipeline_control__fetch_action(pipeline_control__fetch_action),
-        .pipeline_control__valid(pipeline_control__valid),
+        .proc_reset_n((reset_n & !(sram_ctrl[0]!=1'h0))),
         .trace__bkpt_reason(            trace__bkpt_reason),
         .trace__bkpt_valid(            trace__bkpt_valid),
         .trace__rfw_data(            trace__rfw_data),
@@ -950,291 +472,27 @@ module top
         .trace__instr_pc(            trace__instr_pc),
         .trace__mode(            trace__mode),
         .trace__instr_valid(            trace__instr_valid),
-        .csr_controls__trap__ebreak_to_dbg(            csr_controls__trap__ebreak_to_dbg),
-        .csr_controls__trap__vector(            csr_controls__trap__vector),
-        .csr_controls__trap__ret(            csr_controls__trap__ret),
-        .csr_controls__trap__value(            csr_controls__trap__value),
-        .csr_controls__trap__pc(            csr_controls__trap__pc),
-        .csr_controls__trap__cause(            csr_controls__trap__cause),
-        .csr_controls__trap__to_mode(            csr_controls__trap__to_mode),
-        .csr_controls__trap__valid(            csr_controls__trap__valid),
-        .csr_controls__timer_value(            csr_controls__timer_value),
-        .csr_controls__retire(            csr_controls__retire),
-        .csr_controls__exec_mode(            csr_controls__exec_mode),
-        .coproc_controls__alu_cannot_complete(            coproc_controls__alu_cannot_complete),
-        .coproc_controls__alu_cannot_start(            coproc_controls__alu_cannot_start),
-        .coproc_controls__alu_flush_pipeline(            coproc_controls__alu_flush_pipeline),
-        .coproc_controls__alu_rs2(            coproc_controls__alu_rs2),
-        .coproc_controls__alu_rs1(            coproc_controls__alu_rs1),
-        .coproc_controls__dec_to_alu_blocked(            coproc_controls__dec_to_alu_blocked),
-        .coproc_controls__dec_idecode__ext__dummy(            coproc_controls__dec_idecode__ext__dummy),
-        .coproc_controls__dec_idecode__is_compressed(            coproc_controls__dec_idecode__is_compressed),
-        .coproc_controls__dec_idecode__illegal_pc(            coproc_controls__dec_idecode__illegal_pc),
-        .coproc_controls__dec_idecode__illegal(            coproc_controls__dec_idecode__illegal),
-        .coproc_controls__dec_idecode__minimum_mode(            coproc_controls__dec_idecode__minimum_mode),
-        .coproc_controls__dec_idecode__funct7(            coproc_controls__dec_idecode__funct7),
-        .coproc_controls__dec_idecode__subop(            coproc_controls__dec_idecode__subop),
-        .coproc_controls__dec_idecode__op(            coproc_controls__dec_idecode__op),
-        .coproc_controls__dec_idecode__immediate_valid(            coproc_controls__dec_idecode__immediate_valid),
-        .coproc_controls__dec_idecode__immediate_shift(            coproc_controls__dec_idecode__immediate_shift),
-        .coproc_controls__dec_idecode__immediate(            coproc_controls__dec_idecode__immediate),
-        .coproc_controls__dec_idecode__csr_access__write_data(            coproc_controls__dec_idecode__csr_access__write_data),
-        .coproc_controls__dec_idecode__csr_access__address(            coproc_controls__dec_idecode__csr_access__address),
-        .coproc_controls__dec_idecode__csr_access__access(            coproc_controls__dec_idecode__csr_access__access),
-        .coproc_controls__dec_idecode__csr_access__access_cancelled(            coproc_controls__dec_idecode__csr_access__access_cancelled),
-        .coproc_controls__dec_idecode__rd_written(            coproc_controls__dec_idecode__rd_written),
-        .coproc_controls__dec_idecode__rd(            coproc_controls__dec_idecode__rd),
-        .coproc_controls__dec_idecode__rs2_valid(            coproc_controls__dec_idecode__rs2_valid),
-        .coproc_controls__dec_idecode__rs2(            coproc_controls__dec_idecode__rs2),
-        .coproc_controls__dec_idecode__rs1_valid(            coproc_controls__dec_idecode__rs1_valid),
-        .coproc_controls__dec_idecode__rs1(            coproc_controls__dec_idecode__rs1),
-        .coproc_controls__dec_idecode_valid(            coproc_controls__dec_idecode_valid)         );
-    riscv_i32c_pipeline3 dut(
-        .clk(clk),
-        .clk__enable(riscv_clk__enable),
-        .riscv_config__unaligned_mem(riscv_config__unaligned_mem),
-        .riscv_config__coproc_disable(riscv_config__coproc_disable),
-        .riscv_config__debug_enable(riscv_config__debug_enable),
-        .riscv_config__i32m_fuse(riscv_config__i32m_fuse),
-        .riscv_config__i32m(riscv_config__i32m),
-        .riscv_config__e32(riscv_config__e32),
-        .riscv_config__i32c(riscv_config__i32c),
-        .csr_read_data(csr_data__read_data),
-        .coproc_response__cannot_complete(coproc_response__cannot_complete),
-        .coproc_response__result_valid(coproc_response__result_valid),
-        .coproc_response__result(coproc_response__result),
-        .coproc_response__cannot_start(coproc_response__cannot_start),
-        .dmem_access_resp__read_data(dmem_access_resp__read_data),
-        .dmem_access_resp__read_data_valid(dmem_access_resp__read_data_valid),
-        .dmem_access_resp__abort_req(dmem_access_resp__abort_req),
-        .dmem_access_resp__ack(dmem_access_resp__ack),
-        .dmem_access_resp__ack_if_seq(dmem_access_resp__ack_if_seq),
-        .pipeline_fetch_data__dec_pc_if_mispredicted(pipeline_fetch_data__dec_pc_if_mispredicted),
-        .pipeline_fetch_data__dec_predicted_branch(pipeline_fetch_data__dec_predicted_branch),
-        .pipeline_fetch_data__dec_flush_pipeline(pipeline_fetch_data__dec_flush_pipeline),
-        .pipeline_fetch_data__instruction__debug__data(pipeline_fetch_data__instruction__debug__data),
-        .pipeline_fetch_data__instruction__debug__debug_op(pipeline_fetch_data__instruction__debug__debug_op),
-        .pipeline_fetch_data__instruction__debug__valid(pipeline_fetch_data__instruction__debug__valid),
-        .pipeline_fetch_data__instruction__data(pipeline_fetch_data__instruction__data),
-        .pipeline_fetch_data__pc(pipeline_fetch_data__pc),
-        .pipeline_fetch_data__valid(pipeline_fetch_data__valid),
-        .pipeline_control__instruction_debug__data(pipeline_control__instruction_debug__data),
-        .pipeline_control__instruction_debug__debug_op(pipeline_control__instruction_debug__debug_op),
-        .pipeline_control__instruction_debug__valid(pipeline_control__instruction_debug__valid),
-        .pipeline_control__instruction_data(pipeline_control__instruction_data),
-        .pipeline_control__interrupt_to_mode(pipeline_control__interrupt_to_mode),
-        .pipeline_control__interrupt_number(pipeline_control__interrupt_number),
-        .pipeline_control__interrupt_req(pipeline_control__interrupt_req),
-        .pipeline_control__ebreak_to_dbg(pipeline_control__ebreak_to_dbg),
-        .pipeline_control__halt(pipeline_control__halt),
-        .pipeline_control__tag(pipeline_control__tag),
-        .pipeline_control__error(pipeline_control__error),
-        .pipeline_control__mode(pipeline_control__mode),
-        .pipeline_control__fetch_pc(pipeline_control__fetch_pc),
-        .pipeline_control__fetch_action(pipeline_control__fetch_action),
-        .pipeline_control__valid(pipeline_control__valid),
-        .reset_n(reset_n),
-        .csr_access__write_data(            csr_access__write_data),
-        .csr_access__address(            csr_access__address),
-        .csr_access__access(            csr_access__access),
-        .csr_access__access_cancelled(            csr_access__access_cancelled),
-        .dmem_access_req__write_data(            dmem_access_req__write_data),
-        .dmem_access_req__byte_enable(            dmem_access_req__byte_enable),
-        .dmem_access_req__sequential(            dmem_access_req__sequential),
-        .dmem_access_req__address(            dmem_access_req__address),
-        .dmem_access_req__req_type(            dmem_access_req__req_type),
-        .dmem_access_req__valid(            dmem_access_req__valid),
-        .pipeline_response__pipeline_empty(            pipeline_response__pipeline_empty),
-        .pipeline_response__rfw__data(            pipeline_response__rfw__data),
-        .pipeline_response__rfw__rd(            pipeline_response__rfw__rd),
-        .pipeline_response__rfw__rd_written(            pipeline_response__rfw__rd_written),
-        .pipeline_response__rfw__valid(            pipeline_response__rfw__valid),
-        .pipeline_response__exec__pc_if_mispredicted(            pipeline_response__exec__pc_if_mispredicted),
-        .pipeline_response__exec__predicted_branch(            pipeline_response__exec__predicted_branch),
-        .pipeline_response__exec__pc(            pipeline_response__exec__pc),
-        .pipeline_response__exec__rs2(            pipeline_response__exec__rs2),
-        .pipeline_response__exec__rs1(            pipeline_response__exec__rs1),
-        .pipeline_response__exec__instruction__debug__data(            pipeline_response__exec__instruction__debug__data),
-        .pipeline_response__exec__instruction__debug__debug_op(            pipeline_response__exec__instruction__debug__debug_op),
-        .pipeline_response__exec__instruction__debug__valid(            pipeline_response__exec__instruction__debug__valid),
-        .pipeline_response__exec__instruction__data(            pipeline_response__exec__instruction__data),
-        .pipeline_response__exec__is_compressed(            pipeline_response__exec__is_compressed),
-        .pipeline_response__exec__trap__ebreak_to_dbg(            pipeline_response__exec__trap__ebreak_to_dbg),
-        .pipeline_response__exec__trap__vector(            pipeline_response__exec__trap__vector),
-        .pipeline_response__exec__trap__ret(            pipeline_response__exec__trap__ret),
-        .pipeline_response__exec__trap__value(            pipeline_response__exec__trap__value),
-        .pipeline_response__exec__trap__pc(            pipeline_response__exec__trap__pc),
-        .pipeline_response__exec__trap__cause(            pipeline_response__exec__trap__cause),
-        .pipeline_response__exec__trap__to_mode(            pipeline_response__exec__trap__to_mode),
-        .pipeline_response__exec__trap__valid(            pipeline_response__exec__trap__valid),
-        .pipeline_response__exec__jalr(            pipeline_response__exec__jalr),
-        .pipeline_response__exec__branch_taken(            pipeline_response__exec__branch_taken),
-        .pipeline_response__exec__interrupt_ack(            pipeline_response__exec__interrupt_ack),
-        .pipeline_response__exec__cannot_complete(            pipeline_response__exec__cannot_complete),
-        .pipeline_response__exec__cannot_start(            pipeline_response__exec__cannot_start),
-        .pipeline_response__exec__valid(            pipeline_response__exec__valid),
-        .pipeline_response__decode__enable_branch_prediction(            pipeline_response__decode__enable_branch_prediction),
-        .pipeline_response__decode__idecode__ext__dummy(            pipeline_response__decode__idecode__ext__dummy),
-        .pipeline_response__decode__idecode__is_compressed(            pipeline_response__decode__idecode__is_compressed),
-        .pipeline_response__decode__idecode__illegal_pc(            pipeline_response__decode__idecode__illegal_pc),
-        .pipeline_response__decode__idecode__illegal(            pipeline_response__decode__idecode__illegal),
-        .pipeline_response__decode__idecode__minimum_mode(            pipeline_response__decode__idecode__minimum_mode),
-        .pipeline_response__decode__idecode__funct7(            pipeline_response__decode__idecode__funct7),
-        .pipeline_response__decode__idecode__subop(            pipeline_response__decode__idecode__subop),
-        .pipeline_response__decode__idecode__op(            pipeline_response__decode__idecode__op),
-        .pipeline_response__decode__idecode__immediate_valid(            pipeline_response__decode__idecode__immediate_valid),
-        .pipeline_response__decode__idecode__immediate_shift(            pipeline_response__decode__idecode__immediate_shift),
-        .pipeline_response__decode__idecode__immediate(            pipeline_response__decode__idecode__immediate),
-        .pipeline_response__decode__idecode__csr_access__write_data(            pipeline_response__decode__idecode__csr_access__write_data),
-        .pipeline_response__decode__idecode__csr_access__address(            pipeline_response__decode__idecode__csr_access__address),
-        .pipeline_response__decode__idecode__csr_access__access(            pipeline_response__decode__idecode__csr_access__access),
-        .pipeline_response__decode__idecode__csr_access__access_cancelled(            pipeline_response__decode__idecode__csr_access__access_cancelled),
-        .pipeline_response__decode__idecode__rd_written(            pipeline_response__decode__idecode__rd_written),
-        .pipeline_response__decode__idecode__rd(            pipeline_response__decode__idecode__rd),
-        .pipeline_response__decode__idecode__rs2_valid(            pipeline_response__decode__idecode__rs2_valid),
-        .pipeline_response__decode__idecode__rs2(            pipeline_response__decode__idecode__rs2),
-        .pipeline_response__decode__idecode__rs1_valid(            pipeline_response__decode__idecode__rs1_valid),
-        .pipeline_response__decode__idecode__rs1(            pipeline_response__decode__idecode__rs1),
-        .pipeline_response__decode__branch_target(            pipeline_response__decode__branch_target),
-        .pipeline_response__decode__pc(            pipeline_response__decode__pc),
-        .pipeline_response__decode__blocked(            pipeline_response__decode__blocked),
-        .pipeline_response__decode__valid(            pipeline_response__decode__valid)         );
-    riscv_csrs_minimal csrs(
-        .clk(clk),
-        .clk__enable(1'b1),
-        .csr_controls__trap__ebreak_to_dbg(csr_controls__trap__ebreak_to_dbg),
-        .csr_controls__trap__vector(csr_controls__trap__vector),
-        .csr_controls__trap__ret(csr_controls__trap__ret),
-        .csr_controls__trap__value(csr_controls__trap__value),
-        .csr_controls__trap__pc(csr_controls__trap__pc),
-        .csr_controls__trap__cause(csr_controls__trap__cause),
-        .csr_controls__trap__to_mode(csr_controls__trap__to_mode),
-        .csr_controls__trap__valid(csr_controls__trap__valid),
-        .csr_controls__timer_value(csr_controls__timer_value),
-        .csr_controls__retire(csr_controls__retire),
-        .csr_controls__exec_mode(csr_controls__exec_mode),
-        .csr_access__write_data(csr_access__write_data),
-        .csr_access__address(csr_access__address),
-        .csr_access__access(csr_access__access),
-        .csr_access__access_cancelled(csr_access__access_cancelled),
-        .irqs__time(irqs__time),
-        .irqs__msip(irqs__msip),
-        .irqs__mtip(irqs__mtip),
-        .irqs__ueip(irqs__ueip),
-        .irqs__seip(irqs__seip),
-        .irqs__meip(irqs__meip),
-        .irqs__nmi(irqs__nmi),
-        .riscv_clk_enable(riscv_clk_enable),
-        .reset_n(reset_n),
-        .csrs__dscratch1(            csrs__dscratch1),
-        .csrs__dscratch0(            csrs__dscratch0),
-        .csrs__depc(            csrs__depc),
-        .csrs__dcsr__prv(            csrs__dcsr__prv),
-        .csrs__dcsr__step(            csrs__dcsr__step),
-        .csrs__dcsr__nmip(            csrs__dcsr__nmip),
-        .csrs__dcsr__mprven(            csrs__dcsr__mprven),
-        .csrs__dcsr__cause(            csrs__dcsr__cause),
-        .csrs__dcsr__stoptime(            csrs__dcsr__stoptime),
-        .csrs__dcsr__stopcount(            csrs__dcsr__stopcount),
-        .csrs__dcsr__stepie(            csrs__dcsr__stepie),
-        .csrs__dcsr__ebreaku(            csrs__dcsr__ebreaku),
-        .csrs__dcsr__ebreaks(            csrs__dcsr__ebreaks),
-        .csrs__dcsr__ebreakm(            csrs__dcsr__ebreakm),
-        .csrs__dcsr__xdebug_ver(            csrs__dcsr__xdebug_ver),
-        .csrs__mie__usip(            csrs__mie__usip),
-        .csrs__mie__ssip(            csrs__mie__ssip),
-        .csrs__mie__msip(            csrs__mie__msip),
-        .csrs__mie__utip(            csrs__mie__utip),
-        .csrs__mie__stip(            csrs__mie__stip),
-        .csrs__mie__mtip(            csrs__mie__mtip),
-        .csrs__mie__ueip(            csrs__mie__ueip),
-        .csrs__mie__seip(            csrs__mie__seip),
-        .csrs__mie__meip(            csrs__mie__meip),
-        .csrs__mip__usip(            csrs__mip__usip),
-        .csrs__mip__ssip(            csrs__mip__ssip),
-        .csrs__mip__msip(            csrs__mip__msip),
-        .csrs__mip__utip(            csrs__mip__utip),
-        .csrs__mip__stip(            csrs__mip__stip),
-        .csrs__mip__mtip(            csrs__mip__mtip),
-        .csrs__mip__ueip_sw(            csrs__mip__ueip_sw),
-        .csrs__mip__seip_sw(            csrs__mip__seip_sw),
-        .csrs__mip__ueip(            csrs__mip__ueip),
-        .csrs__mip__seip(            csrs__mip__seip),
-        .csrs__mip__meip(            csrs__mip__meip),
-        .csrs__mstatus__uie(            csrs__mstatus__uie),
-        .csrs__mstatus__sie(            csrs__mstatus__sie),
-        .csrs__mstatus__mie(            csrs__mstatus__mie),
-        .csrs__mstatus__upie(            csrs__mstatus__upie),
-        .csrs__mstatus__spie(            csrs__mstatus__spie),
-        .csrs__mstatus__mpie(            csrs__mstatus__mpie),
-        .csrs__mstatus__spp(            csrs__mstatus__spp),
-        .csrs__mstatus__mpp(            csrs__mstatus__mpp),
-        .csrs__mstatus__fs(            csrs__mstatus__fs),
-        .csrs__mstatus__xs(            csrs__mstatus__xs),
-        .csrs__mstatus__mprv(            csrs__mstatus__mprv),
-        .csrs__mstatus__sum(            csrs__mstatus__sum),
-        .csrs__mstatus__mxr(            csrs__mstatus__mxr),
-        .csrs__mstatus__tvm(            csrs__mstatus__tvm),
-        .csrs__mstatus__tw(            csrs__mstatus__tw),
-        .csrs__mstatus__tsr(            csrs__mstatus__tsr),
-        .csrs__mstatus__sd(            csrs__mstatus__sd),
-        .csrs__mtvec__vectored(            csrs__mtvec__vectored),
-        .csrs__mtvec__base(            csrs__mtvec__base),
-        .csrs__mtval(            csrs__mtval),
-        .csrs__mcause(            csrs__mcause),
-        .csrs__mepc(            csrs__mepc),
-        .csrs__mscratch(            csrs__mscratch),
-        .csrs__time(            csrs__time),
-        .csrs__instret(            csrs__instret),
-        .csrs__cycles(            csrs__cycles),
-        .csr_data__illegal_access(            csr_data__illegal_access),
-        .csr_data__interrupt_cause(            csr_data__interrupt_cause),
-        .csr_data__interrupt_mode(            csr_data__interrupt_mode),
-        .csr_data__take_interrupt(            csr_data__take_interrupt),
-        .csr_data__read_data(            csr_data__read_data)         );
-    riscv_i32_muldiv m(
-        .clk(clk),
-        .clk__enable(riscv_clk__enable),
-        .riscv_config__unaligned_mem(riscv_config__unaligned_mem),
-        .riscv_config__coproc_disable(riscv_config__coproc_disable),
-        .riscv_config__debug_enable(riscv_config__debug_enable),
-        .riscv_config__i32m_fuse(riscv_config__i32m_fuse),
-        .riscv_config__i32m(riscv_config__i32m),
-        .riscv_config__e32(riscv_config__e32),
-        .riscv_config__i32c(riscv_config__i32c),
-        .coproc_controls__alu_cannot_complete(coproc_controls__alu_cannot_complete),
-        .coproc_controls__alu_cannot_start(coproc_controls__alu_cannot_start),
-        .coproc_controls__alu_flush_pipeline(coproc_controls__alu_flush_pipeline),
-        .coproc_controls__alu_rs2(coproc_controls__alu_rs2),
-        .coproc_controls__alu_rs1(coproc_controls__alu_rs1),
-        .coproc_controls__dec_to_alu_blocked(coproc_controls__dec_to_alu_blocked),
-        .coproc_controls__dec_idecode__ext__dummy(coproc_controls__dec_idecode__ext__dummy),
-        .coproc_controls__dec_idecode__is_compressed(coproc_controls__dec_idecode__is_compressed),
-        .coproc_controls__dec_idecode__illegal_pc(coproc_controls__dec_idecode__illegal_pc),
-        .coproc_controls__dec_idecode__illegal(coproc_controls__dec_idecode__illegal),
-        .coproc_controls__dec_idecode__minimum_mode(coproc_controls__dec_idecode__minimum_mode),
-        .coproc_controls__dec_idecode__funct7(coproc_controls__dec_idecode__funct7),
-        .coproc_controls__dec_idecode__subop(coproc_controls__dec_idecode__subop),
-        .coproc_controls__dec_idecode__op(coproc_controls__dec_idecode__op),
-        .coproc_controls__dec_idecode__immediate_valid(coproc_controls__dec_idecode__immediate_valid),
-        .coproc_controls__dec_idecode__immediate_shift(coproc_controls__dec_idecode__immediate_shift),
-        .coproc_controls__dec_idecode__immediate(coproc_controls__dec_idecode__immediate),
-        .coproc_controls__dec_idecode__csr_access__write_data(coproc_controls__dec_idecode__csr_access__write_data),
-        .coproc_controls__dec_idecode__csr_access__address(coproc_controls__dec_idecode__csr_access__address),
-        .coproc_controls__dec_idecode__csr_access__access(coproc_controls__dec_idecode__csr_access__access),
-        .coproc_controls__dec_idecode__csr_access__access_cancelled(coproc_controls__dec_idecode__csr_access__access_cancelled),
-        .coproc_controls__dec_idecode__rd_written(coproc_controls__dec_idecode__rd_written),
-        .coproc_controls__dec_idecode__rd(coproc_controls__dec_idecode__rd),
-        .coproc_controls__dec_idecode__rs2_valid(coproc_controls__dec_idecode__rs2_valid),
-        .coproc_controls__dec_idecode__rs2(coproc_controls__dec_idecode__rs2),
-        .coproc_controls__dec_idecode__rs1_valid(coproc_controls__dec_idecode__rs1_valid),
-        .coproc_controls__dec_idecode__rs1(coproc_controls__dec_idecode__rs1),
-        .coproc_controls__dec_idecode_valid(coproc_controls__dec_idecode_valid),
-        .reset_n(reset_n),
-        .coproc_response__cannot_complete(            coproc_response__cannot_complete),
-        .coproc_response__result_valid(            coproc_response__result_valid),
-        .coproc_response__result(            coproc_response__result),
-        .coproc_response__cannot_start(            coproc_response__cannot_start)         );
+        .debug_tgt__mask(            debug_tgt__mask),
+        .debug_tgt__attention(            debug_tgt__attention),
+        .debug_tgt__data(            debug_tgt__data),
+        .debug_tgt__resp(            debug_tgt__resp),
+        .debug_tgt__op_was_none(            debug_tgt__op_was_none),
+        .debug_tgt__hit_breakpoint(            debug_tgt__hit_breakpoint),
+        .debug_tgt__resumed(            debug_tgt__resumed),
+        .debug_tgt__halted(            debug_tgt__halted),
+        .debug_tgt__selected(            debug_tgt__selected),
+        .debug_tgt__valid(            debug_tgt__valid),
+        .sram_access_resp__data(            sram_access_resp__data),
+        .sram_access_resp__id(            sram_access_resp__id),
+        .sram_access_resp__valid(            sram_access_resp__valid),
+        .sram_access_resp__ack(            sram_access_resp__ack),
+        .data_access_req__write_data(            data_access_req__write_data),
+        .data_access_req__byte_enable(            data_access_req__byte_enable),
+        .data_access_req__sequential(            data_access_req__sequential),
+        .data_access_req__address(            data_access_req__address),
+        .data_access_req__req_type(            data_access_req__req_type),
+        .data_access_req__mode(            data_access_req__mode),
+        .data_access_req__valid(            data_access_req__valid)         );
     riscv_i32_trace trace(
         .clk(clk),
         .clk__enable(1'b1),
@@ -1253,226 +511,148 @@ module top
         .trace__instr_pc(trace__instr_pc),
         .trace__mode(trace__mode),
         .trace__instr_valid(trace__instr_valid),
-        .riscv_clk_enable(riscv_clk_enable),
+        .riscv_clk_enable(1'h1),
         .reset_n(reset_n)         );
-    /*chk_riscv_ifetch checker_ifetch(
-        .clk(clk),
-        .clk__enable(riscv_clk__enable),
-        .fetch_resp__tag(rv_imem_access_resp__tag),
-        .fetch_resp__error(rv_imem_access_resp__error),
-        .fetch_resp__mode(rv_imem_access_resp__mode),
-        .fetch_resp__data(rv_imem_access_resp__data),
-        .fetch_resp__debug(rv_imem_access_resp__debug),
-        .fetch_resp__valid(rv_imem_access_resp__valid),
-        .fetch_req__pc_if_mispredicted(rv_imem_access_req__pc_if_mispredicted),
-        .fetch_req__predicted_branch(rv_imem_access_req__predicted_branch),
-        .fetch_req__mode(rv_imem_access_req__mode),
-        .fetch_req__address(rv_imem_access_req__address),
-        .fetch_req__debug_fetch(rv_imem_access_req__debug_fetch),
-        .fetch_req__req_type(rv_imem_access_req__req_type),
-        .fetch_req__flush_pipeline(rv_imem_access_req__flush_pipeline)         );
-    chk_riscv_trace checker_trace(
-        .clk(clk),
-        .clk__enable(riscv_clk__enable),
-        .trace__bkpt_reason(trace__bkpt_reason),
-        .trace__bkpt_valid(trace__bkpt_valid),
-        .trace__rfw_data(trace__rfw_data),
-        .trace__rfw_rd(trace__rfw_rd),
-        .trace__rfw_data_valid(trace__rfw_data_valid),
-        .trace__rfw_retire(trace__rfw_retire),
-        .trace__jalr(trace__jalr),
-        .trace__ret(trace__ret),
-        .trace__trap(trace__trap),
-        .trace__branch_target(trace__branch_target),
-        .trace__branch_taken(trace__branch_taken),
-        .trace__instruction(trace__instruction),
-        .trace__instr_pc(trace__instr_pc),
-        .trace__mode(trace__mode),
-        .trace__instr_valid(trace__instr_valid)         );*/
-    //b clock_divider clock process
-        //   
-        //       
-    always @( posedge clk or negedge reset_n)
-    begin : clock_divider__code
-        if (reset_n==1'b0)
-        begin
-            riscv_clk_cycle_0 <= 1'h1;
-            riscv_clk_cycle_1 <= 1'h0;
-            riscv_clk_cycle_2 <= 1'h0;
-            clk_divider <= 2'h0;
-        end
-        else if (clk__enable)
-        begin
-            riscv_clk_cycle_0 <= (clk_divider==2'h2);
-            riscv_clk_cycle_1 <= (clk_divider==2'h0);
-            riscv_clk_cycle_2 <= (clk_divider==2'h1);
-            clk_divider <= (clk_divider+2'h1);
-            if ((riscv_clk_cycle_2!=1'h0))
-            begin
-                clk_divider <= 2'h0;
-            end //if
-        end //if
-    end //always
-
-    //b srams__comb combinatorial process
-    always @ ( * )//srams__comb
-    begin: srams__comb_code
-    reg rv_imem_access_resp__valid__var;
-    reg [31:0]rv_imem_access_resp__data__var;
-    reg [2:0]rv_imem_access_resp__mode__var;
-    reg imem_access_req__flush_pipeline__var;
-    reg [2:0]imem_access_req__req_type__var;
-    reg imem_access_req__debug_fetch__var;
-    reg [31:0]imem_access_req__address__var;
-    reg [2:0]imem_access_req__mode__var;
-    reg imem_access_req__predicted_branch__var;
-    reg [31:0]imem_access_req__pc_if_mispredicted__var;
-        rv_imem_access_resp__valid__var = 1'h0;
-        rv_imem_access_resp__debug = 1'h0;
-        rv_imem_access_resp__data__var = 32'h0;
-        rv_imem_access_resp__mode__var = 3'h0;
-        rv_imem_access_resp__error = 1'h0;
-        rv_imem_access_resp__tag = 2'h0;
-        rv_imem_access_resp__valid__var = (rv_imem_access_req__req_type!=3'h0);
-        rv_imem_access_resp__data__var = imem_mem_read_data;
-        rv_imem_access_resp__mode__var = rv_imem_access_req__mode;
-        if (!(rv_imem_access_req__address[1]!=1'h0))
-        begin
-            imem_access_req__flush_pipeline__var = rv_imem_access_req__flush_pipeline;
-            imem_access_req__req_type__var = rv_imem_access_req__req_type;
-            imem_access_req__debug_fetch__var = rv_imem_access_req__debug_fetch;
-            imem_access_req__address__var = rv_imem_access_req__address;
-            imem_access_req__mode__var = rv_imem_access_req__mode;
-            imem_access_req__predicted_branch__var = rv_imem_access_req__predicted_branch;
-            imem_access_req__pc_if_mispredicted__var = rv_imem_access_req__pc_if_mispredicted;
-            rv_imem_access_resp__data__var = imem_mem_read_data;
-        end //if
-        else
-        
-        begin
-            if ((riscv_clk_cycle_0!=1'h0))
-            begin
-                imem_access_req__flush_pipeline__var = rv_imem_access_req__flush_pipeline;
-                imem_access_req__req_type__var = rv_imem_access_req__req_type;
-                imem_access_req__debug_fetch__var = rv_imem_access_req__debug_fetch;
-                imem_access_req__address__var = rv_imem_access_req__address;
-                imem_access_req__mode__var = rv_imem_access_req__mode;
-                imem_access_req__predicted_branch__var = rv_imem_access_req__predicted_branch;
-                imem_access_req__pc_if_mispredicted__var = rv_imem_access_req__pc_if_mispredicted;
-            end //if
-            else
-            
-            begin
-                imem_access_req__flush_pipeline__var = rv_imem_access_req__flush_pipeline;
-                imem_access_req__req_type__var = rv_imem_access_req__req_type;
-                imem_access_req__debug_fetch__var = rv_imem_access_req__debug_fetch;
-                imem_access_req__address__var = rv_imem_access_req__address;
-                imem_access_req__mode__var = rv_imem_access_req__mode;
-                imem_access_req__predicted_branch__var = rv_imem_access_req__predicted_branch;
-                imem_access_req__pc_if_mispredicted__var = rv_imem_access_req__pc_if_mispredicted;
-                imem_access_req__address__var = (rv_imem_access_req__address+32'h4);
-                rv_imem_access_resp__data__var = {imem_mem_read_data[15:0],last_imem_mem_read_data[31:16]};
-            end //else
-        end //else
-        dmem_access_resp__ack = 1'h1;
-        dmem_access_resp__ack_if_seq = 1'h1;
-        dmem_access_resp__abort_req = 1'h0;
-        dmem_access_resp__read_data_valid = 1'h1;
-        dmem_access_resp__read_data = main_mem_read_data;
-        rv_imem_access_resp__valid = rv_imem_access_resp__valid__var;
-        rv_imem_access_resp__data = rv_imem_access_resp__data__var;
-        rv_imem_access_resp__mode = rv_imem_access_resp__mode__var;
-        imem_access_req__flush_pipeline = imem_access_req__flush_pipeline__var;
-        imem_access_req__req_type = imem_access_req__req_type__var;
-        imem_access_req__debug_fetch = imem_access_req__debug_fetch__var;
-        imem_access_req__address = imem_access_req__address__var;
-        imem_access_req__mode = imem_access_req__mode__var;
-        imem_access_req__predicted_branch = imem_access_req__predicted_branch__var;
-        imem_access_req__pc_if_mispredicted = imem_access_req__pc_if_mispredicted__var;
-    end //always
-
-    //b srams__posedge_clk_active_low_reset_n clock process
-    always @( posedge clk or negedge reset_n)
-    begin : srams__posedge_clk_active_low_reset_n__code
-        if (reset_n==1'b0)
-        begin
-            last_imem_mem_read_data <= 32'h0;
-            dmem_select <= 1'h0;
-            dmem_read_not_write <= 1'h0;
-            dmem_address <= 14'h0;
-            dmem_write_data <= 32'h0;
-        end
-        else if (clk__enable)
-        begin
-            last_imem_mem_read_data <= imem_mem_read_data;
-            if ((riscv_clk_cycle_2!=1'h0))
-            begin
-                dmem_select <= ((dmem_access_req__valid!=1'h0)&&(dmem_access_resp__ack!=1'h0));
-                dmem_read_not_write <= (dmem_access_req__req_type!=5'h2);
-                dmem_address <= dmem_access_req__address[15:2];
-                dmem_write_data <= dmem_access_req__write_data;
-            end //if
-        end //if
-    end //always
-
     //b riscv_instance combinatorial process
     always @ ( * )//riscv_instance
     begin: riscv_instance__comb_code
     reg riscv_config__i32c__var;
     reg riscv_config__e32__var;
-    reg riscv_config__i32m__var;
-    reg riscv_config__i32m_fuse__var;
     reg riscv_config__debug_enable__var;
-    reg riscv_config__coproc_disable__var;
-        tck_enable_fix = tck_enable;
-        debug_tgt__valid = debug_tgt0__valid;
-        debug_tgt__selected = debug_tgt0__selected;
-        debug_tgt__halted = debug_tgt0__halted;
-        debug_tgt__resumed = debug_tgt0__resumed;
-        debug_tgt__hit_breakpoint = debug_tgt0__hit_breakpoint;
-        debug_tgt__op_was_none = debug_tgt0__op_was_none;
-        debug_tgt__resp = debug_tgt0__resp;
-        debug_tgt__data = debug_tgt0__data;
-        debug_tgt__attention = debug_tgt0__attention;
+    reg irqs__mtip__var;
+    reg [31:0]th_apb_request__paddr__var;
         riscv_config__i32c__var = 1'h0;
         riscv_config__e32__var = 1'h0;
-        riscv_config__i32m__var = 1'h0;
-        riscv_config__i32m_fuse__var = 1'h0;
+        riscv_config__i32m = 1'h0;
+        riscv_config__i32m_fuse = 1'h0;
         riscv_config__debug_enable__var = 1'h0;
-        riscv_config__coproc_disable__var = 1'h0;
+        riscv_config__coproc_disable = 1'h0;
         riscv_config__unaligned_mem = 1'h0;
-        riscv_config__i32c__var = 1'h1;
+        riscv_config__mem_abort_late = 1'h0;
         riscv_config__e32__var = 1'h0;
-        riscv_config__i32m__var = 1'h1;
-        riscv_config__i32m_fuse__var = 1'h1;
-        riscv_config__coproc_disable__var = 1'h0;
+        riscv_config__i32c__var = 1'h0;
         riscv_config__debug_enable__var = 1'h1;
         irqs__nmi = 1'h0;
         irqs__meip = 1'h0;
         irqs__seip = 1'h0;
         irqs__ueip = 1'h0;
-        irqs__mtip = 1'h0;
+        irqs__mtip__var = 1'h0;
         irqs__msip = 1'h0;
         irqs__time = 64'h0;
-        riscv_clk_enable = riscv_clk_cycle_2;
+        irqs__mtip__var = timer_value__irq;
+        th_apb_request__paddr__var = jtag_apb_request__paddr;
+        th_apb_request__penable = jtag_apb_request__penable;
+        th_apb_request__psel = jtag_apb_request__psel;
+        th_apb_request__pwrite = jtag_apb_request__pwrite;
+        th_apb_request__pwdata = jtag_apb_request__pwdata;
+        th_apb_request__paddr__var = {{{16'h0,4'h2},jtag_apb_request__paddr[9:0]},2'h0};
+        jtag_apb_response__prdata = th_apb_response__prdata;
+        jtag_apb_response__pready = th_apb_response__pready;
+        jtag_apb_response__perr = th_apb_response__perr;
         riscv_config__i32c = riscv_config__i32c__var;
         riscv_config__e32 = riscv_config__e32__var;
-        riscv_config__i32m = riscv_config__i32m__var;
-        riscv_config__i32m_fuse = riscv_config__i32m_fuse__var;
         riscv_config__debug_enable = riscv_config__debug_enable__var;
-        riscv_config__coproc_disable = riscv_config__coproc_disable__var;
+        irqs__mtip = irqs__mtip__var;
+        th_apb_request__paddr = th_apb_request__paddr__var;
     end //always
-   
-     always @(posedge clk or negedge reset_n) begin 
-		if (reset_n==1'b0)
+
+    //b apb_peripherals combinatorial process
+    always @ ( * )//apb_peripherals
+    begin: apb_peripherals__comb_code
+    reg timer_control__enable_counter__var;
+    reg [3:0]timer_control__fractional_adder__var;
+    reg [7:0]timer_control__integer_adder__var;
+    reg [31:0]timer_apb_request__paddr__var;
+    reg timer_apb_request__psel__var;
+    reg [31:0]sram_apb_request__paddr__var;
+    reg sram_apb_request__psel__var;
+    reg [31:0]debug_apb_request__paddr__var;
+    reg debug_apb_request__psel__var;
+    reg [31:0]uart_apb_request__paddr__var;
+    reg uart_apb_request__psel__var;
+    reg [31:0]mux_apb_response__prdata__var;
+    reg mux_apb_response__pready__var;
+    reg mux_apb_response__perr__var;
+        tck_enable_fix = 1'h1;
+        timer_control__reset_counter = 1'h0;
+        timer_control__enable_counter__var = 1'h0;
+        timer_control__advance = 1'h0;
+        timer_control__retard = 1'h0;
+        timer_control__lock_to_master = 1'h0;
+        timer_control__lock_window_lsb = 2'h0;
+        timer_control__synchronize = 2'h0;
+        timer_control__synchronize_value = 64'h0;
+        timer_control__block_writes = 1'h0;
+        timer_control__bonus_subfraction_add = 8'h0;
+        timer_control__bonus_subfraction_sub = 8'h0;
+        timer_control__fractional_adder__var = 4'h0;
+        timer_control__integer_adder__var = 8'h0;
+        timer_control__enable_counter__var = 1'h1;
+        timer_control__fractional_adder__var = 4'h2;
+        timer_control__integer_adder__var = 8'h0;
+        timer_apb_request__paddr__var = mux_apb_request__paddr;
+        timer_apb_request__penable = mux_apb_request__penable;
+        timer_apb_request__psel__var = mux_apb_request__psel;
+        timer_apb_request__pwrite = mux_apb_request__pwrite;
+        timer_apb_request__pwdata = mux_apb_request__pwdata;
+        sram_apb_request__paddr__var = mux_apb_request__paddr;
+        sram_apb_request__penable = mux_apb_request__penable;
+        sram_apb_request__psel__var = mux_apb_request__psel;
+        sram_apb_request__pwrite = mux_apb_request__pwrite;
+        sram_apb_request__pwdata = mux_apb_request__pwdata;
+        debug_apb_request__paddr__var = mux_apb_request__paddr;
+        debug_apb_request__penable = mux_apb_request__penable;
+        debug_apb_request__psel__var = mux_apb_request__psel;
+        debug_apb_request__pwrite = mux_apb_request__pwrite;
+        debug_apb_request__pwdata = mux_apb_request__pwdata;
+        uart_apb_request__paddr__var = mux_apb_request__paddr;
+        uart_apb_request__penable = mux_apb_request__penable;
+        uart_apb_request__psel__var = mux_apb_request__psel;
+        uart_apb_request__pwrite = mux_apb_request__pwrite;
+        uart_apb_request__pwdata = mux_apb_request__pwdata;
+        timer_apb_request__psel__var = ((mux_apb_request__psel!=1'h0)&&(mux_apb_request__paddr[15:12]==4'h0));
+        sram_apb_request__psel__var = ((mux_apb_request__psel!=1'h0)&&(mux_apb_request__paddr[15:12]==4'h1));
+        debug_apb_request__psel__var = ((mux_apb_request__psel!=1'h0)&&(mux_apb_request__paddr[15:12]==4'h2));
+        uart_apb_request__psel__var = ((mux_apb_request__psel!=1'h0)&&(mux_apb_request__paddr[15:12]==4'h3));
+        timer_apb_request__paddr__var = (mux_apb_request__paddr>>64'h2);
+        sram_apb_request__paddr__var = (mux_apb_request__paddr>>64'h2);
+        debug_apb_request__paddr__var = (mux_apb_request__paddr>>64'h2);
+        uart_apb_request__paddr__var = (mux_apb_request__paddr>>64'h2);
+        mux_apb_response__prdata__var = timer_apb_response__prdata;
+        mux_apb_response__pready__var = timer_apb_response__pready;
+        mux_apb_response__perr__var = timer_apb_response__perr;
+        if ((sram_apb_request__psel__var!=1'h0))
         begin
-            dmem_select_last<=1'b0;
-        end
-        else begin
-        if ((dmem_address == 14'h800) && dmem_select && !dmem_read_not_write && !dmem_select_last) begin            
-			$write("%c", dmem_write_data[7:0]);
-		end
-        dmem_select_last <= dmem_select;
-        end
-	end 
-endmodule // tb_riscv_i32mc_pipeline3
+            mux_apb_response__prdata__var = sram_apb_response__prdata;
+            mux_apb_response__pready__var = sram_apb_response__pready;
+            mux_apb_response__perr__var = sram_apb_response__perr;
+        end //if
+        if ((debug_apb_request__psel__var!=1'h0))
+        begin
+            mux_apb_response__prdata__var = debug_apb_response__prdata;
+            mux_apb_response__pready__var = debug_apb_response__pready;
+            mux_apb_response__perr__var = debug_apb_response__perr;
+        end //if
+        if ((uart_apb_request__psel__var!=1'h0))
+        begin
+            mux_apb_response__prdata__var = uart_apb_response__prdata;
+            mux_apb_response__pready__var = uart_apb_response__pready;
+            mux_apb_response__perr__var = uart_apb_response__perr;
+        end //if
+        timer_control__enable_counter = timer_control__enable_counter__var;
+        timer_control__fractional_adder = timer_control__fractional_adder__var;
+        timer_control__integer_adder = timer_control__integer_adder__var;
+        timer_apb_request__paddr = timer_apb_request__paddr__var;
+        timer_apb_request__psel = timer_apb_request__psel__var;
+        sram_apb_request__paddr = sram_apb_request__paddr__var;
+        sram_apb_request__psel = sram_apb_request__psel__var;
+        debug_apb_request__paddr = debug_apb_request__paddr__var;
+        debug_apb_request__psel = debug_apb_request__psel__var;
+        uart_apb_request__paddr = uart_apb_request__paddr__var;
+        uart_apb_request__psel = uart_apb_request__psel__var;
+        mux_apb_response__prdata = mux_apb_response__prdata__var;
+        mux_apb_response__pready = mux_apb_response__pready__var;
+        mux_apb_response__perr = mux_apb_response__perr__var;
+    end //always
+
+endmodule // tb_riscv_i32_minimal

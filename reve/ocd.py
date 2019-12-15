@@ -53,7 +53,8 @@ class ReveOCD:
         self._engine.write_dr(BitSequence(value = ((adr&0xffff)<<34)|(1),
          length = 50))
         self._engine.go_idle()        
-        self._engine.write_tms(BitSequence(value=0 ,length=50)) 
+        for i in range(8):
+            self._engine.write_tms(BitSequence(value=0 ,length=7)) 
         val = (int(self._engine.read_dr(50))>>2) & 0xffffffff
         return val
     

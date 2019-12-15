@@ -12,6 +12,7 @@
 
 #include "../simframework/framework.h"
 #include "../simframework/jtag.h"
+#include "../simframework/uart.h"
 Workspace<Vtop> *murax;
 
 class MuraxWorkspace : public Workspace<Vtop>{
@@ -19,10 +20,14 @@ public:
 	MuraxWorkspace(int vcd) : Workspace("Murax", vcd){
 		ClockDomain *mainClk = new ClockDomain(&top->clk,NULL,20,300);
 		AsyncReset *asyncReset = new AsyncReset(&top->reset_n, 500, 1);
-		
+		UartRx *uartRx = new UartRx(&top->uart_tx_txd,1.0e9/115200);
+		UartTx *uartTx = new UartTx(&top->uart_rx_rxd,1.0e9/115200);
+  
 
 		timeProcesses.push_back(mainClk);
 		timeProcesses.push_back(asyncReset);
+        timeProcesses.push_back(uartRx);
+		timeProcesses.push_back(uartTx);
 
 		Jtag *jtag = new Jtag(&top->jtag_tms,&top->jtag_tdi,&top->tdo,&top->jtag_tck,83*4);
 		timeProcesses.push_back(jtag);
@@ -55,6 +60,11 @@ int main(int argc, char **argv, char **env) {
 	timespec startedAt = timer_start();
 
 	murax  = new MuraxWorkspace(vcd);
+    murax->top->jtag_ntrst = 1;
+    murax->top->jtag_tck_enable = 1;
+    murax->top->clk_enable = 1;
+    murax->top->uart_rx_rts = 1;
+    murax->top->uart_rx_rxd = 1;    
 	murax->run(100e6);
 
 	uint64_t duration = timer_end(startedAt);

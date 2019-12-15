@@ -13,7 +13,7 @@
 
 //a Module riscv_i32_pipeline_control
     //   
-    //   This is a fully synchronous pipeline debug module supporting the pipelines. 
+    //   This is a fully synchronous pipeline debug module supporting the pipelines.
     //   
     //   It is designed to feed data in to a RISC-V pipeline (being merged with
     //   instruction fetch responses), and it takes commands and reports out to
@@ -24,6 +24,8 @@
     //   
 module riscv_i32_pipeline_control
 (
+    riscv_clk,
+    riscv_clk__enable,
     clk,
     clk__enable,
 
@@ -56,17 +58,39 @@ module riscv_i32_pipeline_control
     riscv_config__debug_enable,
     riscv_config__coproc_disable,
     riscv_config__unaligned_mem,
+    riscv_config__mem_abort_late,
+    pipeline_control__trap__valid,
+    pipeline_control__trap__to_mode,
+    pipeline_control__trap__cause,
+    pipeline_control__trap__pc,
+    pipeline_control__trap__value,
+    pipeline_control__trap__ret,
+    pipeline_control__trap__ebreak_to_dbg,
+    pipeline_control__flush__fetch,
+    pipeline_control__flush__decode,
+    pipeline_control__flush__exec,
+    pipeline_control__flush__mem,
+    pipeline_control__decode__completing,
+    pipeline_control__decode__blocked,
+    pipeline_control__decode__cannot_complete,
+    pipeline_control__exec__completing_cycle,
+    pipeline_control__exec__completing,
+    pipeline_control__exec__blocked_start,
+    pipeline_control__exec__blocked,
+    pipeline_control__exec__mispredicted_branch,
+    pipeline_control__exec__pc_if_mispredicted,
+    pipeline_control__mem__blocked,
     pipeline_fetch_data__valid,
+    pipeline_fetch_data__mode,
     pipeline_fetch_data__pc,
+    pipeline_fetch_data__instruction__mode,
     pipeline_fetch_data__instruction__data,
     pipeline_fetch_data__instruction__debug__valid,
     pipeline_fetch_data__instruction__debug__debug_op,
     pipeline_fetch_data__instruction__debug__data,
-    pipeline_fetch_data__dec_flush_pipeline,
     pipeline_fetch_data__dec_predicted_branch,
     pipeline_fetch_data__dec_pc_if_mispredicted,
     pipeline_response__decode__valid,
-    pipeline_response__decode__blocked,
     pipeline_response__decode__pc,
     pipeline_response__decode__branch_target,
     pipeline_response__decode__idecode__rs1,
@@ -75,46 +99,93 @@ module riscv_i32_pipeline_control
     pipeline_response__decode__idecode__rs2_valid,
     pipeline_response__decode__idecode__rd,
     pipeline_response__decode__idecode__rd_written,
+    pipeline_response__decode__idecode__csr_access__mode,
     pipeline_response__decode__idecode__csr_access__access_cancelled,
     pipeline_response__decode__idecode__csr_access__access,
+    pipeline_response__decode__idecode__csr_access__custom__mhartid,
+    pipeline_response__decode__idecode__csr_access__custom__misa,
+    pipeline_response__decode__idecode__csr_access__custom__mvendorid,
+    pipeline_response__decode__idecode__csr_access__custom__marchid,
+    pipeline_response__decode__idecode__csr_access__custom__mimpid,
     pipeline_response__decode__idecode__csr_access__address,
+    pipeline_response__decode__idecode__csr_access__select,
     pipeline_response__decode__idecode__csr_access__write_data,
     pipeline_response__decode__idecode__immediate,
     pipeline_response__decode__idecode__immediate_shift,
     pipeline_response__decode__idecode__immediate_valid,
     pipeline_response__decode__idecode__op,
     pipeline_response__decode__idecode__subop,
+    pipeline_response__decode__idecode__shift_op,
     pipeline_response__decode__idecode__funct7,
-    pipeline_response__decode__idecode__minimum_mode,
     pipeline_response__decode__idecode__illegal,
-    pipeline_response__decode__idecode__illegal_pc,
     pipeline_response__decode__idecode__is_compressed,
     pipeline_response__decode__idecode__ext__dummy,
     pipeline_response__decode__enable_branch_prediction,
     pipeline_response__exec__valid,
     pipeline_response__exec__cannot_start,
-    pipeline_response__exec__cannot_complete,
-    pipeline_response__exec__interrupt_ack,
-    pipeline_response__exec__branch_taken,
-    pipeline_response__exec__jalr,
-    pipeline_response__exec__trap__valid,
-    pipeline_response__exec__trap__to_mode,
-    pipeline_response__exec__trap__cause,
-    pipeline_response__exec__trap__pc,
-    pipeline_response__exec__trap__value,
-    pipeline_response__exec__trap__ret,
-    pipeline_response__exec__trap__vector,
-    pipeline_response__exec__trap__ebreak_to_dbg,
-    pipeline_response__exec__is_compressed,
+    pipeline_response__exec__first_cycle,
+    pipeline_response__exec__last_cycle,
+    pipeline_response__exec__interrupt_block,
+    pipeline_response__exec__instruction__mode,
     pipeline_response__exec__instruction__data,
     pipeline_response__exec__instruction__debug__valid,
     pipeline_response__exec__instruction__debug__debug_op,
     pipeline_response__exec__instruction__debug__data,
+    pipeline_response__exec__idecode__rs1,
+    pipeline_response__exec__idecode__rs1_valid,
+    pipeline_response__exec__idecode__rs2,
+    pipeline_response__exec__idecode__rs2_valid,
+    pipeline_response__exec__idecode__rd,
+    pipeline_response__exec__idecode__rd_written,
+    pipeline_response__exec__idecode__csr_access__mode,
+    pipeline_response__exec__idecode__csr_access__access_cancelled,
+    pipeline_response__exec__idecode__csr_access__access,
+    pipeline_response__exec__idecode__csr_access__custom__mhartid,
+    pipeline_response__exec__idecode__csr_access__custom__misa,
+    pipeline_response__exec__idecode__csr_access__custom__mvendorid,
+    pipeline_response__exec__idecode__csr_access__custom__marchid,
+    pipeline_response__exec__idecode__csr_access__custom__mimpid,
+    pipeline_response__exec__idecode__csr_access__address,
+    pipeline_response__exec__idecode__csr_access__select,
+    pipeline_response__exec__idecode__csr_access__write_data,
+    pipeline_response__exec__idecode__immediate,
+    pipeline_response__exec__idecode__immediate_shift,
+    pipeline_response__exec__idecode__immediate_valid,
+    pipeline_response__exec__idecode__op,
+    pipeline_response__exec__idecode__subop,
+    pipeline_response__exec__idecode__shift_op,
+    pipeline_response__exec__idecode__funct7,
+    pipeline_response__exec__idecode__illegal,
+    pipeline_response__exec__idecode__is_compressed,
+    pipeline_response__exec__idecode__ext__dummy,
     pipeline_response__exec__rs1,
     pipeline_response__exec__rs2,
     pipeline_response__exec__pc,
     pipeline_response__exec__predicted_branch,
     pipeline_response__exec__pc_if_mispredicted,
+    pipeline_response__exec__branch_condition_met,
+    pipeline_response__exec__dmem_access_req__valid,
+    pipeline_response__exec__dmem_access_req__mode,
+    pipeline_response__exec__dmem_access_req__req_type,
+    pipeline_response__exec__dmem_access_req__address,
+    pipeline_response__exec__dmem_access_req__sequential,
+    pipeline_response__exec__dmem_access_req__byte_enable,
+    pipeline_response__exec__dmem_access_req__write_data,
+    pipeline_response__exec__csr_access__mode,
+    pipeline_response__exec__csr_access__access_cancelled,
+    pipeline_response__exec__csr_access__access,
+    pipeline_response__exec__csr_access__custom__mhartid,
+    pipeline_response__exec__csr_access__custom__misa,
+    pipeline_response__exec__csr_access__custom__mvendorid,
+    pipeline_response__exec__csr_access__custom__marchid,
+    pipeline_response__exec__csr_access__custom__mimpid,
+    pipeline_response__exec__csr_access__address,
+    pipeline_response__exec__csr_access__select,
+    pipeline_response__exec__csr_access__write_data,
+    pipeline_response__mem__valid,
+    pipeline_response__mem__access_in_progress,
+    pipeline_response__mem__pc,
+    pipeline_response__mem__addr,
     pipeline_response__rfw__valid,
     pipeline_response__rfw__rd_written,
     pipeline_response__rfw__rd,
@@ -166,6 +237,12 @@ module riscv_i32_pipeline_control
     csrs__mie__msip,
     csrs__mie__ssip,
     csrs__mie__usip,
+    csrs__uscratch,
+    csrs__uepc,
+    csrs__ucause,
+    csrs__utval,
+    csrs__utvec__base,
+    csrs__utvec__vectored,
     csrs__dcsr__xdebug_ver,
     csrs__dcsr__ebreakm,
     csrs__dcsr__ebreaks,
@@ -193,28 +270,29 @@ module riscv_i32_pipeline_control
     debug_tgt__resp,
     debug_tgt__data,
     debug_tgt__attention,
-    pipeline_control__valid,
-    pipeline_control__fetch_action,
-    pipeline_control__fetch_pc,
-    pipeline_control__mode,
-    pipeline_control__error,
-    pipeline_control__tag,
-    pipeline_control__halt,
-    pipeline_control__ebreak_to_dbg,
-    pipeline_control__interrupt_req,
-    pipeline_control__interrupt_number,
-    pipeline_control__interrupt_to_mode,
-    pipeline_control__instruction_data,
-    pipeline_control__instruction_debug__valid,
-    pipeline_control__instruction_debug__debug_op,
-    pipeline_control__instruction_debug__data
+    debug_tgt__mask,
+    pipeline_state__fetch_action,
+    pipeline_state__fetch_pc,
+    pipeline_state__mode,
+    pipeline_state__error,
+    pipeline_state__tag,
+    pipeline_state__halt,
+    pipeline_state__ebreak_to_dbg,
+    pipeline_state__interrupt_req,
+    pipeline_state__interrupt_number,
+    pipeline_state__interrupt_to_mode,
+    pipeline_state__instruction_data,
+    pipeline_state__instruction_debug__valid,
+    pipeline_state__instruction_debug__debug_op,
+    pipeline_state__instruction_debug__data
 );
 
     //b Clocks
+        //   Clk gated by riscv_clk_enable - provide for single clock gate outside the module
+    input riscv_clk;
+    input riscv_clk__enable;
     input clk;
     input clk__enable;
-    wire riscv_clk; // Gated version of clock 'clk' enabled by 'riscv_clk_enable'
-    wire riscv_clk__enable;
 
     //b Inputs
     input [5:0]rv_select;
@@ -246,17 +324,39 @@ module riscv_i32_pipeline_control
     input riscv_config__debug_enable;
     input riscv_config__coproc_disable;
     input riscv_config__unaligned_mem;
+    input riscv_config__mem_abort_late;
+    input pipeline_control__trap__valid;
+    input [2:0]pipeline_control__trap__to_mode;
+    input [4:0]pipeline_control__trap__cause;
+    input [31:0]pipeline_control__trap__pc;
+    input [31:0]pipeline_control__trap__value;
+    input pipeline_control__trap__ret;
+    input pipeline_control__trap__ebreak_to_dbg;
+    input pipeline_control__flush__fetch;
+    input pipeline_control__flush__decode;
+    input pipeline_control__flush__exec;
+    input pipeline_control__flush__mem;
+    input pipeline_control__decode__completing;
+    input pipeline_control__decode__blocked;
+    input pipeline_control__decode__cannot_complete;
+    input pipeline_control__exec__completing_cycle;
+    input pipeline_control__exec__completing;
+    input pipeline_control__exec__blocked_start;
+    input pipeline_control__exec__blocked;
+    input pipeline_control__exec__mispredicted_branch;
+    input [31:0]pipeline_control__exec__pc_if_mispredicted;
+    input pipeline_control__mem__blocked;
     input pipeline_fetch_data__valid;
+    input [2:0]pipeline_fetch_data__mode;
     input [31:0]pipeline_fetch_data__pc;
+    input [2:0]pipeline_fetch_data__instruction__mode;
     input [31:0]pipeline_fetch_data__instruction__data;
     input pipeline_fetch_data__instruction__debug__valid;
     input [1:0]pipeline_fetch_data__instruction__debug__debug_op;
     input [15:0]pipeline_fetch_data__instruction__debug__data;
-    input pipeline_fetch_data__dec_flush_pipeline;
     input pipeline_fetch_data__dec_predicted_branch;
     input [31:0]pipeline_fetch_data__dec_pc_if_mispredicted;
     input pipeline_response__decode__valid;
-    input pipeline_response__decode__blocked;
     input [31:0]pipeline_response__decode__pc;
     input [31:0]pipeline_response__decode__branch_target;
     input [4:0]pipeline_response__decode__idecode__rs1;
@@ -265,46 +365,93 @@ module riscv_i32_pipeline_control
     input pipeline_response__decode__idecode__rs2_valid;
     input [4:0]pipeline_response__decode__idecode__rd;
     input pipeline_response__decode__idecode__rd_written;
+    input [2:0]pipeline_response__decode__idecode__csr_access__mode;
     input pipeline_response__decode__idecode__csr_access__access_cancelled;
     input [2:0]pipeline_response__decode__idecode__csr_access__access;
+    input [31:0]pipeline_response__decode__idecode__csr_access__custom__mhartid;
+    input [31:0]pipeline_response__decode__idecode__csr_access__custom__misa;
+    input [31:0]pipeline_response__decode__idecode__csr_access__custom__mvendorid;
+    input [31:0]pipeline_response__decode__idecode__csr_access__custom__marchid;
+    input [31:0]pipeline_response__decode__idecode__csr_access__custom__mimpid;
     input [11:0]pipeline_response__decode__idecode__csr_access__address;
+    input [11:0]pipeline_response__decode__idecode__csr_access__select;
     input [31:0]pipeline_response__decode__idecode__csr_access__write_data;
     input [31:0]pipeline_response__decode__idecode__immediate;
     input [4:0]pipeline_response__decode__idecode__immediate_shift;
     input pipeline_response__decode__idecode__immediate_valid;
     input [3:0]pipeline_response__decode__idecode__op;
     input [3:0]pipeline_response__decode__idecode__subop;
+    input [3:0]pipeline_response__decode__idecode__shift_op;
     input [6:0]pipeline_response__decode__idecode__funct7;
-    input [2:0]pipeline_response__decode__idecode__minimum_mode;
     input pipeline_response__decode__idecode__illegal;
-    input pipeline_response__decode__idecode__illegal_pc;
     input pipeline_response__decode__idecode__is_compressed;
     input pipeline_response__decode__idecode__ext__dummy;
     input pipeline_response__decode__enable_branch_prediction;
     input pipeline_response__exec__valid;
     input pipeline_response__exec__cannot_start;
-    input pipeline_response__exec__cannot_complete;
-    input pipeline_response__exec__interrupt_ack;
-    input pipeline_response__exec__branch_taken;
-    input pipeline_response__exec__jalr;
-    input pipeline_response__exec__trap__valid;
-    input [2:0]pipeline_response__exec__trap__to_mode;
-    input [3:0]pipeline_response__exec__trap__cause;
-    input [31:0]pipeline_response__exec__trap__pc;
-    input [31:0]pipeline_response__exec__trap__value;
-    input pipeline_response__exec__trap__ret;
-    input pipeline_response__exec__trap__vector;
-    input pipeline_response__exec__trap__ebreak_to_dbg;
-    input pipeline_response__exec__is_compressed;
+    input pipeline_response__exec__first_cycle;
+    input pipeline_response__exec__last_cycle;
+    input pipeline_response__exec__interrupt_block;
+    input [2:0]pipeline_response__exec__instruction__mode;
     input [31:0]pipeline_response__exec__instruction__data;
     input pipeline_response__exec__instruction__debug__valid;
     input [1:0]pipeline_response__exec__instruction__debug__debug_op;
     input [15:0]pipeline_response__exec__instruction__debug__data;
+    input [4:0]pipeline_response__exec__idecode__rs1;
+    input pipeline_response__exec__idecode__rs1_valid;
+    input [4:0]pipeline_response__exec__idecode__rs2;
+    input pipeline_response__exec__idecode__rs2_valid;
+    input [4:0]pipeline_response__exec__idecode__rd;
+    input pipeline_response__exec__idecode__rd_written;
+    input [2:0]pipeline_response__exec__idecode__csr_access__mode;
+    input pipeline_response__exec__idecode__csr_access__access_cancelled;
+    input [2:0]pipeline_response__exec__idecode__csr_access__access;
+    input [31:0]pipeline_response__exec__idecode__csr_access__custom__mhartid;
+    input [31:0]pipeline_response__exec__idecode__csr_access__custom__misa;
+    input [31:0]pipeline_response__exec__idecode__csr_access__custom__mvendorid;
+    input [31:0]pipeline_response__exec__idecode__csr_access__custom__marchid;
+    input [31:0]pipeline_response__exec__idecode__csr_access__custom__mimpid;
+    input [11:0]pipeline_response__exec__idecode__csr_access__address;
+    input [11:0]pipeline_response__exec__idecode__csr_access__select;
+    input [31:0]pipeline_response__exec__idecode__csr_access__write_data;
+    input [31:0]pipeline_response__exec__idecode__immediate;
+    input [4:0]pipeline_response__exec__idecode__immediate_shift;
+    input pipeline_response__exec__idecode__immediate_valid;
+    input [3:0]pipeline_response__exec__idecode__op;
+    input [3:0]pipeline_response__exec__idecode__subop;
+    input [3:0]pipeline_response__exec__idecode__shift_op;
+    input [6:0]pipeline_response__exec__idecode__funct7;
+    input pipeline_response__exec__idecode__illegal;
+    input pipeline_response__exec__idecode__is_compressed;
+    input pipeline_response__exec__idecode__ext__dummy;
     input [31:0]pipeline_response__exec__rs1;
     input [31:0]pipeline_response__exec__rs2;
     input [31:0]pipeline_response__exec__pc;
     input pipeline_response__exec__predicted_branch;
     input [31:0]pipeline_response__exec__pc_if_mispredicted;
+    input pipeline_response__exec__branch_condition_met;
+    input pipeline_response__exec__dmem_access_req__valid;
+    input [2:0]pipeline_response__exec__dmem_access_req__mode;
+    input [4:0]pipeline_response__exec__dmem_access_req__req_type;
+    input [31:0]pipeline_response__exec__dmem_access_req__address;
+    input pipeline_response__exec__dmem_access_req__sequential;
+    input [3:0]pipeline_response__exec__dmem_access_req__byte_enable;
+    input [31:0]pipeline_response__exec__dmem_access_req__write_data;
+    input [2:0]pipeline_response__exec__csr_access__mode;
+    input pipeline_response__exec__csr_access__access_cancelled;
+    input [2:0]pipeline_response__exec__csr_access__access;
+    input [31:0]pipeline_response__exec__csr_access__custom__mhartid;
+    input [31:0]pipeline_response__exec__csr_access__custom__misa;
+    input [31:0]pipeline_response__exec__csr_access__custom__mvendorid;
+    input [31:0]pipeline_response__exec__csr_access__custom__marchid;
+    input [31:0]pipeline_response__exec__csr_access__custom__mimpid;
+    input [11:0]pipeline_response__exec__csr_access__address;
+    input [11:0]pipeline_response__exec__csr_access__select;
+    input [31:0]pipeline_response__exec__csr_access__write_data;
+    input pipeline_response__mem__valid;
+    input pipeline_response__mem__access_in_progress;
+    input [31:0]pipeline_response__mem__pc;
+    input [31:0]pipeline_response__mem__addr;
     input pipeline_response__rfw__valid;
     input pipeline_response__rfw__rd_written;
     input [4:0]pipeline_response__rfw__rd;
@@ -356,6 +503,12 @@ module riscv_i32_pipeline_control
     input csrs__mie__msip;
     input csrs__mie__ssip;
     input csrs__mie__usip;
+    input [31:0]csrs__uscratch;
+    input [31:0]csrs__uepc;
+    input [31:0]csrs__ucause;
+    input [31:0]csrs__utval;
+    input [29:0]csrs__utvec__base;
+    input csrs__utvec__vectored;
     input [3:0]csrs__dcsr__xdebug_ver;
     input csrs__dcsr__ebreakm;
     input csrs__dcsr__ebreaks;
@@ -385,21 +538,21 @@ module riscv_i32_pipeline_control
     output [1:0]debug_tgt__resp;
     output [31:0]debug_tgt__data;
     output debug_tgt__attention;
-    output pipeline_control__valid;
-    output [2:0]pipeline_control__fetch_action;
-    output [31:0]pipeline_control__fetch_pc;
-    output [2:0]pipeline_control__mode;
-    output pipeline_control__error;
-    output [1:0]pipeline_control__tag;
-    output pipeline_control__halt;
-    output pipeline_control__ebreak_to_dbg;
-    output pipeline_control__interrupt_req;
-    output [3:0]pipeline_control__interrupt_number;
-    output [2:0]pipeline_control__interrupt_to_mode;
-    output [31:0]pipeline_control__instruction_data;
-    output pipeline_control__instruction_debug__valid;
-    output [1:0]pipeline_control__instruction_debug__debug_op;
-    output [15:0]pipeline_control__instruction_debug__data;
+    output [5:0]debug_tgt__mask;
+    output [2:0]pipeline_state__fetch_action;
+    output [31:0]pipeline_state__fetch_pc;
+    output [2:0]pipeline_state__mode;
+    output pipeline_state__error;
+    output [1:0]pipeline_state__tag;
+    output pipeline_state__halt;
+    output pipeline_state__ebreak_to_dbg;
+    output pipeline_state__interrupt_req;
+    output [3:0]pipeline_state__interrupt_number;
+    output [2:0]pipeline_state__interrupt_to_mode;
+    output [31:0]pipeline_state__instruction_data;
+    output pipeline_state__instruction_debug__valid;
+    output [1:0]pipeline_state__instruction_debug__debug_op;
+    output [15:0]pipeline_state__instruction_debug__data;
 
 // output components here
 
@@ -413,21 +566,21 @@ module riscv_i32_pipeline_control
     reg [1:0]debug_tgt__resp;
     reg [31:0]debug_tgt__data;
     reg debug_tgt__attention;
-    reg pipeline_control__valid;
-    reg [2:0]pipeline_control__fetch_action;
-    reg [31:0]pipeline_control__fetch_pc;
-    reg [2:0]pipeline_control__mode;
-    reg pipeline_control__error;
-    reg [1:0]pipeline_control__tag;
-    reg pipeline_control__halt;
-    reg pipeline_control__ebreak_to_dbg;
-    reg pipeline_control__interrupt_req;
-    reg [3:0]pipeline_control__interrupt_number;
-    reg [2:0]pipeline_control__interrupt_to_mode;
-    reg [31:0]pipeline_control__instruction_data;
-    reg pipeline_control__instruction_debug__valid;
-    reg [1:0]pipeline_control__instruction_debug__debug_op;
-    reg [15:0]pipeline_control__instruction_debug__data;
+    reg [5:0]debug_tgt__mask;
+    reg [2:0]pipeline_state__fetch_action;
+    reg [31:0]pipeline_state__fetch_pc;
+    reg [2:0]pipeline_state__mode;
+    reg pipeline_state__error;
+    reg [1:0]pipeline_state__tag;
+    reg pipeline_state__halt;
+    reg pipeline_state__ebreak_to_dbg;
+    reg pipeline_state__interrupt_req;
+    reg [3:0]pipeline_state__interrupt_number;
+    reg [2:0]pipeline_state__interrupt_to_mode;
+    reg [31:0]pipeline_state__instruction_data;
+    reg pipeline_state__instruction_debug__valid;
+    reg [1:0]pipeline_state__instruction_debug__debug_op;
+    reg [15:0]pipeline_state__instruction_debug__data;
 
     //b Output nets
 
@@ -436,6 +589,8 @@ module riscv_i32_pipeline_control
     reg [1:0]ifetch_state__state;
     reg [2:0]ifetch_state__mode;
     reg [31:0]ifetch_state__pc;
+    reg ifetch_state__instruction_debug_valid;
+    reg ifetch_state__waiting_for_read_write;
     reg ifetch_state__halt_req;
         //   debug_state must be on the constantly running clock, as the debug interface is shared between cores
     reg [2:0]debug_state__control__fsm_state;
@@ -456,6 +611,7 @@ module riscv_i32_pipeline_control
     reg debug_state__control__read_write_completed;
     reg debug_state__drive__attention;
     reg debug_state__drive__response;
+    reg [5:0]debug_state__drive__mask;
 
     //b Internal combinatorials
     reg ifetch_combs__debug_disabled;
@@ -467,7 +623,6 @@ module riscv_i32_pipeline_control
     //b Internal nets
 
     //b Clock gating module instances
-    assign riscv_clk__enable = (clk__enable && riscv_clk_enable);
     //b Module instances
     //b debug_state_machine__comb combinatorial process
         //   
@@ -702,7 +857,7 @@ module riscv_i32_pipeline_control
         end //if
     end //always
 
-    //b pipeline_control_logic__comb combinatorial process
+    //b pipeline_state_logic__comb combinatorial process
         //   
         //       The instruction fetch request derives from the
         //       decode/execute stage (the instruction address that is required
@@ -715,8 +870,8 @@ module riscv_i32_pipeline_control
         //       If the decode/execute stage is invalid (i.e. it does not have a
         //       valid instruction to decode) then the current PC is requested.
         //       
-    always @ ( * )//pipeline_control_logic__comb
-    begin: pipeline_control_logic__comb_code
+    always @ ( * )//pipeline_state_logic__comb
+    begin: pipeline_state_logic__comb_code
     reg ifetch_combs__interrupt_req__var;
     reg [3:0]ifetch_combs__interrupt_number__var;
     reg [2:0]ifetch_combs__fetch_action__var;
@@ -742,7 +897,7 @@ module riscv_i32_pipeline_control
         case (ifetch_state__state) //synopsys parallel_case
         2'h0: // req 1
             begin
-            if ((debug_state__control__waiting_for_read_write!=1'h0))
+            if ((ifetch_state__waiting_for_read_write!=1'h0))
             begin
                 ifetch_combs__fetch_action__var = 3'h1;
             end //if
@@ -789,7 +944,7 @@ module riscv_i32_pipeline_control
             begin
                 if (1)
                 begin
-                    $display("%t *********CDL ASSERTION FAILURE:riscv_i32_pipeline_control:pipeline_control_logic: Full switch statement did not cover all values", $time);
+                    $display("%t *********CDL ASSERTION FAILURE:riscv_i32_pipeline_control:pipeline_state_logic: Full switch statement did not cover all values", $time);
                 end
             end
     //pragma coverage on
@@ -800,7 +955,7 @@ module riscv_i32_pipeline_control
         ifetch_combs__fetch_action = ifetch_combs__fetch_action__var;
     end //always
 
-    //b pipeline_control_logic__posedge_riscv_clk_active_low_reset_n clock process
+    //b pipeline_state_logic__posedge_riscv_clk_active_low_reset_n clock process
         //   
         //       The instruction fetch request derives from the
         //       decode/execute stage (the instruction address that is required
@@ -813,10 +968,12 @@ module riscv_i32_pipeline_control
         //       If the decode/execute stage is invalid (i.e. it does not have a
         //       valid instruction to decode) then the current PC is requested.
         //       
-    always @( posedge clk or negedge reset_n)
-    begin : pipeline_control_logic__posedge_riscv_clk_active_low_reset_n__code
+    always @( posedge riscv_clk or negedge reset_n)
+    begin : pipeline_state_logic__posedge_riscv_clk_active_low_reset_n__code
         if (reset_n==1'b0)
         begin
+            ifetch_state__instruction_debug_valid <= 1'h0;
+            ifetch_state__waiting_for_read_write <= 1'h0;
             ifetch_state__halt_req <= 1'h0;
             ifetch_state__state <= 2'h0;
             ifetch_state__state <= 2'h0;
@@ -827,6 +984,14 @@ module riscv_i32_pipeline_control
         end
         else if (riscv_clk__enable)
         begin
+            if (((debug_state__control__instruction_debug_valid!=1'h0)||(ifetch_state__instruction_debug_valid!=1'h0)))
+            begin
+                ifetch_state__instruction_debug_valid <= debug_state__control__instruction_debug_valid;
+            end //if
+            if (((debug_state__control__waiting_for_read_write!=1'h0)||(ifetch_state__waiting_for_read_write!=1'h0)))
+            begin
+                ifetch_state__waiting_for_read_write <= debug_state__control__waiting_for_read_write;
+            end //if
             ifetch_state__halt_req <= 1'h0;
             case (ifetch_state__state) //synopsys parallel_case
             2'h0: // req 1
@@ -854,7 +1019,7 @@ module riscv_i32_pipeline_control
                 begin
                 ifetch_state__state <= 2'h2;
                 ifetch_state__pc <= pipeline_fetch_data__pc;
-                if (((pipeline_fetch_data__valid!=1'h0)&&!(pipeline_response__decode__blocked!=1'h0)))
+                if (((pipeline_fetch_data__valid!=1'h0)&&!(pipeline_control__decode__cannot_complete!=1'h0)))
                 begin
                     ifetch_state__pc <= pipeline_fetch_data__pc;
                     ifetch_state__state <= 2'h3;
@@ -867,46 +1032,54 @@ module riscv_i32_pipeline_control
                 begin
                     ifetch_state__halt_req <= 1'h1;
                 end //if
-                if (((pipeline_response__exec__valid!=1'h0)&&(pipeline_response__exec__branch_taken!=pipeline_response__exec__predicted_branch)))
+                if ((pipeline_control__exec__mispredicted_branch!=1'h0))
                 begin
-                    ifetch_state__pc <= pipeline_response__exec__pc_if_mispredicted;
+                    ifetch_state__pc <= pipeline_control__exec__pc_if_mispredicted;
                     ifetch_state__state <= 2'h1;
                 end //if
-                if ((pipeline_response__exec__trap__ret!=1'h0))
+                if ((pipeline_control__trap__valid!=1'h0))
                 begin
-                    ifetch_state__pc <= csrs__mepc;
-                    ifetch_state__state <= 2'h1;
-                    ifetch_state__mode <= 3'h3;
-                end //if
-                if ((pipeline_response__exec__trap__valid!=1'h0))
-                begin
-                    if ((pipeline_control__interrupt_to_mode==3'h7))
+                    if ((pipeline_control__trap__ret!=1'h0))
                     begin
-                        ifetch_state__halt_req <= 1'h0;
-                        ifetch_state__state <= 2'h0;
+                        ifetch_state__pc <= csrs__mepc;
+                        ifetch_state__state <= 2'h1;
+                        ifetch_state__mode <= 3'h3;
+                        if ((csrs__mstatus__mpp==2'h0))
+                        begin
+                            ifetch_state__mode <= 3'h0;
+                        end //if
                     end //if
                     else
                     
                     begin
-                        if ((pipeline_response__exec__trap__ebreak_to_dbg!=1'h0))
+                        if ((pipeline_state__interrupt_to_mode==3'h7))
                         begin
+                            ifetch_state__halt_req <= 1'h0;
                             ifetch_state__state <= 2'h0;
                         end //if
                         else
                         
                         begin
-                            ifetch_state__state <= 2'h1;
+                            if ((pipeline_control__trap__ebreak_to_dbg!=1'h0))
+                            begin
+                                ifetch_state__state <= 2'h0;
+                            end //if
+                            else
+                            
+                            begin
+                                ifetch_state__state <= 2'h1;
+                            end //else
                         end //else
+                        ifetch_state__mode <= pipeline_control__trap__to_mode;
+                        ifetch_state__pc <= {csrs__mtvec__base,2'h0};
                     end //else
-                    ifetch_state__mode <= pipeline_control__interrupt_to_mode;
-                    ifetch_state__pc <= {csrs__mtvec__base,2'h0};
                 end //if
                 end
             2'h3: // req 1
                 begin
                 ifetch_state__state <= 2'h2;
                 ifetch_state__pc <= pipeline_fetch_data__pc;
-                if (((pipeline_fetch_data__valid!=1'h0)&&!(pipeline_response__decode__blocked!=1'h0)))
+                if (((pipeline_fetch_data__valid!=1'h0)&&!(pipeline_control__decode__cannot_complete!=1'h0)))
                 begin
                     ifetch_state__pc <= pipeline_fetch_data__pc;
                     ifetch_state__state <= 2'h3;
@@ -919,46 +1092,54 @@ module riscv_i32_pipeline_control
                 begin
                     ifetch_state__halt_req <= 1'h1;
                 end //if
-                if (((pipeline_response__exec__valid!=1'h0)&&(pipeline_response__exec__branch_taken!=pipeline_response__exec__predicted_branch)))
+                if ((pipeline_control__exec__mispredicted_branch!=1'h0))
                 begin
-                    ifetch_state__pc <= pipeline_response__exec__pc_if_mispredicted;
+                    ifetch_state__pc <= pipeline_control__exec__pc_if_mispredicted;
                     ifetch_state__state <= 2'h1;
                 end //if
-                if ((pipeline_response__exec__trap__ret!=1'h0))
+                if ((pipeline_control__trap__valid!=1'h0))
                 begin
-                    ifetch_state__pc <= csrs__mepc;
-                    ifetch_state__state <= 2'h1;
-                    ifetch_state__mode <= 3'h3;
-                end //if
-                if ((pipeline_response__exec__trap__valid!=1'h0))
-                begin
-                    if ((pipeline_control__interrupt_to_mode==3'h7))
+                    if ((pipeline_control__trap__ret!=1'h0))
                     begin
-                        ifetch_state__halt_req <= 1'h0;
-                        ifetch_state__state <= 2'h0;
+                        ifetch_state__pc <= csrs__mepc;
+                        ifetch_state__state <= 2'h1;
+                        ifetch_state__mode <= 3'h3;
+                        if ((csrs__mstatus__mpp==2'h0))
+                        begin
+                            ifetch_state__mode <= 3'h0;
+                        end //if
                     end //if
                     else
                     
                     begin
-                        if ((pipeline_response__exec__trap__ebreak_to_dbg!=1'h0))
+                        if ((pipeline_state__interrupt_to_mode==3'h7))
                         begin
+                            ifetch_state__halt_req <= 1'h0;
                             ifetch_state__state <= 2'h0;
                         end //if
                         else
                         
                         begin
-                            ifetch_state__state <= 2'h1;
+                            if ((pipeline_control__trap__ebreak_to_dbg!=1'h0))
+                            begin
+                                ifetch_state__state <= 2'h0;
+                            end //if
+                            else
+                            
+                            begin
+                                ifetch_state__state <= 2'h1;
+                            end //else
                         end //else
+                        ifetch_state__mode <= pipeline_control__trap__to_mode;
+                        ifetch_state__pc <= {csrs__mtvec__base,2'h0};
                     end //else
-                    ifetch_state__mode <= pipeline_control__interrupt_to_mode;
-                    ifetch_state__pc <= {csrs__mtvec__base,2'h0};
                 end //if
                 end
             2'h2: // req 1
                 begin
                 ifetch_state__state <= 2'h2;
                 ifetch_state__pc <= pipeline_fetch_data__pc;
-                if (((pipeline_fetch_data__valid!=1'h0)&&!(pipeline_response__decode__blocked!=1'h0)))
+                if (((pipeline_fetch_data__valid!=1'h0)&&!(pipeline_control__decode__cannot_complete!=1'h0)))
                 begin
                     ifetch_state__pc <= pipeline_fetch_data__pc;
                     ifetch_state__state <= 2'h3;
@@ -971,39 +1152,47 @@ module riscv_i32_pipeline_control
                 begin
                     ifetch_state__halt_req <= 1'h1;
                 end //if
-                if (((pipeline_response__exec__valid!=1'h0)&&(pipeline_response__exec__branch_taken!=pipeline_response__exec__predicted_branch)))
+                if ((pipeline_control__exec__mispredicted_branch!=1'h0))
                 begin
-                    ifetch_state__pc <= pipeline_response__exec__pc_if_mispredicted;
+                    ifetch_state__pc <= pipeline_control__exec__pc_if_mispredicted;
                     ifetch_state__state <= 2'h1;
                 end //if
-                if ((pipeline_response__exec__trap__ret!=1'h0))
+                if ((pipeline_control__trap__valid!=1'h0))
                 begin
-                    ifetch_state__pc <= csrs__mepc;
-                    ifetch_state__state <= 2'h1;
-                    ifetch_state__mode <= 3'h3;
-                end //if
-                if ((pipeline_response__exec__trap__valid!=1'h0))
-                begin
-                    if ((pipeline_control__interrupt_to_mode==3'h7))
+                    if ((pipeline_control__trap__ret!=1'h0))
                     begin
-                        ifetch_state__halt_req <= 1'h0;
-                        ifetch_state__state <= 2'h0;
+                        ifetch_state__pc <= csrs__mepc;
+                        ifetch_state__state <= 2'h1;
+                        ifetch_state__mode <= 3'h3;
+                        if ((csrs__mstatus__mpp==2'h0))
+                        begin
+                            ifetch_state__mode <= 3'h0;
+                        end //if
                     end //if
                     else
                     
                     begin
-                        if ((pipeline_response__exec__trap__ebreak_to_dbg!=1'h0))
+                        if ((pipeline_state__interrupt_to_mode==3'h7))
                         begin
+                            ifetch_state__halt_req <= 1'h0;
                             ifetch_state__state <= 2'h0;
                         end //if
                         else
                         
                         begin
-                            ifetch_state__state <= 2'h1;
+                            if ((pipeline_control__trap__ebreak_to_dbg!=1'h0))
+                            begin
+                                ifetch_state__state <= 2'h0;
+                            end //if
+                            else
+                            
+                            begin
+                                ifetch_state__state <= 2'h1;
+                            end //else
                         end //else
+                        ifetch_state__mode <= pipeline_control__trap__to_mode;
+                        ifetch_state__pc <= {csrs__mtvec__base,2'h0};
                     end //else
-                    ifetch_state__mode <= pipeline_control__interrupt_to_mode;
-                    ifetch_state__pc <= {csrs__mtvec__base,2'h0};
                 end //if
                 end
     //synopsys  translate_off
@@ -1012,7 +1201,7 @@ module riscv_i32_pipeline_control
                 begin
                     if (1)
                     begin
-                        $display("%t *********CDL ASSERTION FAILURE:riscv_i32_pipeline_control:pipeline_control_logic: Full switch statement did not cover all values", $time);
+                        $display("%t *********CDL ASSERTION FAILURE:riscv_i32_pipeline_control:pipeline_state_logic: Full switch statement did not cover all values", $time);
                     end
                 end
     //pragma coverage on
@@ -1024,54 +1213,51 @@ module riscv_i32_pipeline_control
     //b pc_logic combinatorial process
     always @ ( * )//pc_logic
     begin: pc_logic__comb_code
-    reg pipeline_control__valid__var;
-    reg [2:0]pipeline_control__fetch_action__var;
-    reg [31:0]pipeline_control__fetch_pc__var;
-    reg [2:0]pipeline_control__mode__var;
-    reg pipeline_control__ebreak_to_dbg__var;
-    reg pipeline_control__interrupt_req__var;
-    reg [3:0]pipeline_control__interrupt_number__var;
-    reg [2:0]pipeline_control__interrupt_to_mode__var;
-    reg [31:0]pipeline_control__instruction_data__var;
-    reg pipeline_control__instruction_debug__valid__var;
-    reg [1:0]pipeline_control__instruction_debug__debug_op__var;
-    reg [15:0]pipeline_control__instruction_debug__data__var;
-        pipeline_control__valid__var = 1'h0;
-        pipeline_control__fetch_action__var = 3'h0;
-        pipeline_control__fetch_pc__var = 32'h0;
-        pipeline_control__mode__var = 3'h0;
-        pipeline_control__error = 1'h0;
-        pipeline_control__tag = 2'h0;
-        pipeline_control__halt = 1'h0;
-        pipeline_control__ebreak_to_dbg__var = 1'h0;
-        pipeline_control__interrupt_req__var = 1'h0;
-        pipeline_control__interrupt_number__var = 4'h0;
-        pipeline_control__interrupt_to_mode__var = 3'h0;
-        pipeline_control__instruction_data__var = 32'h0;
-        pipeline_control__instruction_debug__valid__var = 1'h0;
-        pipeline_control__instruction_debug__debug_op__var = 2'h0;
-        pipeline_control__instruction_debug__data__var = 16'h0;
-        pipeline_control__valid__var = 1'h1;
-        pipeline_control__fetch_pc__var = ifetch_state__pc;
-        pipeline_control__fetch_action__var = ifetch_combs__fetch_action;
-        pipeline_control__mode__var = ifetch_state__mode;
-        pipeline_control__ebreak_to_dbg__var = 1'h0;
+    reg [2:0]pipeline_state__fetch_action__var;
+    reg [31:0]pipeline_state__fetch_pc__var;
+    reg [2:0]pipeline_state__mode__var;
+    reg pipeline_state__ebreak_to_dbg__var;
+    reg pipeline_state__interrupt_req__var;
+    reg [3:0]pipeline_state__interrupt_number__var;
+    reg [2:0]pipeline_state__interrupt_to_mode__var;
+    reg [31:0]pipeline_state__instruction_data__var;
+    reg pipeline_state__instruction_debug__valid__var;
+    reg [1:0]pipeline_state__instruction_debug__debug_op__var;
+    reg [15:0]pipeline_state__instruction_debug__data__var;
+        pipeline_state__fetch_action__var = 3'h0;
+        pipeline_state__fetch_pc__var = 32'h0;
+        pipeline_state__mode__var = 3'h0;
+        pipeline_state__error = 1'h0;
+        pipeline_state__tag = 2'h0;
+        pipeline_state__halt = 1'h0;
+        pipeline_state__ebreak_to_dbg__var = 1'h0;
+        pipeline_state__interrupt_req__var = 1'h0;
+        pipeline_state__interrupt_number__var = 4'h0;
+        pipeline_state__interrupt_to_mode__var = 3'h0;
+        pipeline_state__instruction_data__var = 32'h0;
+        pipeline_state__instruction_debug__valid__var = 1'h0;
+        pipeline_state__instruction_debug__debug_op__var = 2'h0;
+        pipeline_state__instruction_debug__data__var = 16'h0;
+        pipeline_state__fetch_pc__var = ifetch_state__pc;
+        pipeline_state__fetch_action__var = ifetch_combs__fetch_action;
+        pipeline_state__mode__var = ifetch_state__mode;
+        pipeline_state__ebreak_to_dbg__var = 1'h0;
         case (ifetch_state__mode) //synopsys parallel_case
         3'h7: // req 1
             begin
-            pipeline_control__ebreak_to_dbg__var = 1'h1;
+            pipeline_state__ebreak_to_dbg__var = 1'h1;
             end
         3'h3: // req 1
             begin
-            pipeline_control__ebreak_to_dbg__var = csrs__dcsr__ebreakm;
+            pipeline_state__ebreak_to_dbg__var = csrs__dcsr__ebreakm;
             end
         3'h1: // req 1
             begin
-            pipeline_control__ebreak_to_dbg__var = csrs__dcsr__ebreaks;
+            pipeline_state__ebreak_to_dbg__var = csrs__dcsr__ebreaks;
             end
         3'h0: // req 1
             begin
-            pipeline_control__ebreak_to_dbg__var = csrs__dcsr__ebreaku;
+            pipeline_state__ebreak_to_dbg__var = csrs__dcsr__ebreaku;
             end
     //synopsys  translate_off
     //pragma coverage off
@@ -1087,27 +1273,26 @@ module riscv_i32_pipeline_control
         endcase
         if ((ifetch_combs__debug_disabled!=1'h0))
         begin
-            pipeline_control__ebreak_to_dbg__var = 1'h0;
+            pipeline_state__ebreak_to_dbg__var = 1'h0;
         end //if
-        pipeline_control__interrupt_req__var = ((ifetch_combs__interrupt_req!=1'h0)||(ifetch_state__halt_req!=1'h0));
-        pipeline_control__interrupt_number__var = ifetch_combs__interrupt_number;
-        pipeline_control__interrupt_to_mode__var = ((ifetch_state__halt_req!=1'h0)?3'h7:ifetch_state__mode);
-        pipeline_control__instruction_data__var = debug_state__control__data0;
-        pipeline_control__instruction_debug__valid__var = debug_state__control__instruction_debug_valid;
-        pipeline_control__instruction_debug__debug_op__var = debug_state__control__instruction_debug_op;
-        pipeline_control__instruction_debug__data__var = debug_state__control__arg;
-        pipeline_control__valid = pipeline_control__valid__var;
-        pipeline_control__fetch_action = pipeline_control__fetch_action__var;
-        pipeline_control__fetch_pc = pipeline_control__fetch_pc__var;
-        pipeline_control__mode = pipeline_control__mode__var;
-        pipeline_control__ebreak_to_dbg = pipeline_control__ebreak_to_dbg__var;
-        pipeline_control__interrupt_req = pipeline_control__interrupt_req__var;
-        pipeline_control__interrupt_number = pipeline_control__interrupt_number__var;
-        pipeline_control__interrupt_to_mode = pipeline_control__interrupt_to_mode__var;
-        pipeline_control__instruction_data = pipeline_control__instruction_data__var;
-        pipeline_control__instruction_debug__valid = pipeline_control__instruction_debug__valid__var;
-        pipeline_control__instruction_debug__debug_op = pipeline_control__instruction_debug__debug_op__var;
-        pipeline_control__instruction_debug__data = pipeline_control__instruction_debug__data__var;
+        pipeline_state__interrupt_req__var = ((ifetch_combs__interrupt_req!=1'h0)||(ifetch_state__halt_req!=1'h0));
+        pipeline_state__interrupt_number__var = ifetch_combs__interrupt_number;
+        pipeline_state__interrupt_to_mode__var = ((ifetch_state__halt_req!=1'h0)?3'h7:ifetch_state__mode);
+        pipeline_state__instruction_data__var = debug_state__control__data0;
+        pipeline_state__instruction_debug__valid__var = ifetch_state__instruction_debug_valid;
+        pipeline_state__instruction_debug__debug_op__var = debug_state__control__instruction_debug_op;
+        pipeline_state__instruction_debug__data__var = debug_state__control__arg;
+        pipeline_state__fetch_action = pipeline_state__fetch_action__var;
+        pipeline_state__fetch_pc = pipeline_state__fetch_pc__var;
+        pipeline_state__mode = pipeline_state__mode__var;
+        pipeline_state__ebreak_to_dbg = pipeline_state__ebreak_to_dbg__var;
+        pipeline_state__interrupt_req = pipeline_state__interrupt_req__var;
+        pipeline_state__interrupt_number = pipeline_state__interrupt_number__var;
+        pipeline_state__interrupt_to_mode = pipeline_state__interrupt_to_mode__var;
+        pipeline_state__instruction_data = pipeline_state__instruction_data__var;
+        pipeline_state__instruction_debug__valid = pipeline_state__instruction_debug__valid__var;
+        pipeline_state__instruction_debug__debug_op = pipeline_state__instruction_debug__debug_op__var;
+        pipeline_state__instruction_debug__data = pipeline_state__instruction_debug__data__var;
     end //always
 
     //b debug_response_driving__comb combinatorial process
@@ -1124,6 +1309,7 @@ module riscv_i32_pipeline_control
     reg [1:0]debug_tgt__resp__var;
     reg [31:0]debug_tgt__data__var;
     reg debug_tgt__attention__var;
+    reg [5:0]debug_tgt__mask__var;
         debug_tgt__valid__var = 1'h0;
         debug_tgt__selected__var = 6'h0;
         debug_tgt__halted__var = 1'h0;
@@ -1133,6 +1319,8 @@ module riscv_i32_pipeline_control
         debug_tgt__resp__var = 2'h0;
         debug_tgt__data__var = 32'h0;
         debug_tgt__attention__var = 1'h0;
+        debug_tgt__mask__var = 6'h0;
+        debug_tgt__mask__var = debug_state__drive__mask;
         if ((debug_state__drive__attention!=1'h0))
         begin
             debug_tgt__attention__var = debug_state__control__attention;
@@ -1158,6 +1346,7 @@ module riscv_i32_pipeline_control
             debug_tgt__resp__var = 2'h0;
             debug_tgt__data__var = 32'h0;
             debug_tgt__attention__var = 1'h0;
+            debug_tgt__mask__var = 6'h0;
         end //if
         debug_tgt__valid = debug_tgt__valid__var;
         debug_tgt__selected = debug_tgt__selected__var;
@@ -1168,6 +1357,7 @@ module riscv_i32_pipeline_control
         debug_tgt__resp = debug_tgt__resp__var;
         debug_tgt__data = debug_tgt__data__var;
         debug_tgt__attention = debug_tgt__attention__var;
+        debug_tgt__mask = debug_tgt__mask__var;
     end //always
 
     //b debug_response_driving__posedge_clk_active_low_reset_n clock process
@@ -1179,12 +1369,15 @@ module riscv_i32_pipeline_control
         begin
             debug_state__drive__attention <= 1'h0;
             debug_state__drive__response <= 1'h0;
+            debug_state__drive__mask <= 6'h0;
         end
         else if (clk__enable)
         begin
             debug_state__drive__attention <= 1'h0;
             debug_state__drive__response <= 1'h0;
-            if (((debug_mst__mask & rv_select)==debug_mst__select))
+            debug_state__drive__mask <= 6'h0;
+            debug_state__drive__mask <= debug_mst__mask;
+            if (((debug_mst__mask & rv_select)==(debug_mst__mask & debug_mst__select)))
             begin
                 debug_state__drive__attention <= 1'h1;
             end //if
@@ -1196,6 +1389,7 @@ module riscv_i32_pipeline_control
             begin
                 debug_state__drive__attention <= 1'h0;
                 debug_state__drive__response <= 1'h0;
+                debug_state__drive__mask <= 6'h0;
             end //if
         end //if
     end //always

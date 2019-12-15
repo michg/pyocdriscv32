@@ -21,10 +21,12 @@ module riscv_i32_dmem_read_data
     dmem_access_resp__ack_if_seq,
     dmem_access_resp__ack,
     dmem_access_resp__abort_req,
-    dmem_access_resp__read_data_valid,
+    dmem_access_resp__may_still_abort,
+    dmem_access_resp__access_complete,
     dmem_access_resp__read_data,
     last_data,
     dmem_request__access__valid,
+    dmem_request__access__mode,
     dmem_request__access__req_type,
     dmem_request__access__address,
     dmem_request__access__sequential,
@@ -49,10 +51,12 @@ module riscv_i32_dmem_read_data
     input dmem_access_resp__ack_if_seq;
     input dmem_access_resp__ack;
     input dmem_access_resp__abort_req;
-    input dmem_access_resp__read_data_valid;
+    input dmem_access_resp__may_still_abort;
+    input dmem_access_resp__access_complete;
     input [31:0]dmem_access_resp__read_data;
     input [31:0]last_data;
     input dmem_request__access__valid;
+    input [2:0]dmem_request__access__mode;
     input [4:0]dmem_request__access__req_type;
     input [31:0]dmem_request__access__address;
     input dmem_request__access__sequential;
