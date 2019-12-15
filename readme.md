@@ -10,12 +10,14 @@ using the API of [pyftdi](https://github.com/eblot/pyftdi).
 
 To try it in simulation [verilator](https://www.veripool.org/wiki/verilator) is needed.
 For murax do the following:
-`cd murax`
+Build the firmware murax.bin:
+`python3 mkfw.py murax hello` 
 Build the simulation:
+`cd murax`
 `make`
 Run the simulation:
 `obj_dir/vmurax` 
 or with tracing enabled:
 `obj_dir/vmurax vcd`
 Finally run dbgjtag.py:
-`python3 dbgjtag murax`
+`python3 dbgjtag s murax`

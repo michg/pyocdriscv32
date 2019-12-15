@@ -6,7 +6,7 @@ import time
 from array import array
 from pyftdi.ftdi import Ftdi
 from pyftdi.bits import BitSequence 
-from pyftdi.jtag import JtagStateMachine, JtagTool
+from pyftdi.jtag import JtagStateMachine, JtagTool, JtagEngine
 from murax.ocd import MuraxOCD
 from pulp.ocd import PulpOCD
 from reve.ocd import ReveOCD
@@ -19,10 +19,10 @@ def inrange(value, bits):
     lower_limit = -(1 << (bits - 1))
     return value in range(lower_limit, upper_limit)  
 
-Archdata = namedtuple('Archdata', ['Ocd', 'membaseadr','bootofs']) 
-Muraxdata = Archdata(MuraxOCD, 0x80000000, 0)
-Pulpdata = Archdata(PulpOCD, 0x30000000, 0x80) # 1C//3=tbnew2
-Revedata = Archdata(ReveOCD, 0x00000000, 0)
+Archdata = namedtuple('Archdata', ['Ocd', 'membaseadr','bootadr']) 
+Muraxdata = Archdata(MuraxOCD, 0x80000000, 0x80000000 )
+Pulpdata = Archdata(PulpOCD, 0x30000000, 0x30000080) # 1C//3=tbnew2
+Revedata = Archdata(ReveOCD, 0x00000000, 0x0)  #ref=0x0,0
 
 archmap = {
     'murax': Muraxdata,
@@ -212,9 +212,13 @@ def loadbinary(filename, startadr):
         ocd.writemem(startadr + i*4, struct.unpack('<I',bindata[i*4:(i+1)*4])[0])
         
 if __name__ == '__main__':
-    engine = JtagSimEngine()
+    if(argv[1]=='h'):
+        engine = JtagEngine(trst=False, frequency=10E3)
+        engine.configure('ftdi://olimex:ft2232h/1')
+    else:
+        engine = JtagSimEngine()
+        engine.configure(7894)
     tool = JtagTool(engine)
-    engine.configure(7894)
     time.sleep(1)
     engine.reset()
     id = tool.idcode()
@@ -222,25 +226,27 @@ if __name__ == '__main__':
     engine.go_idle()
     engine.capture_ir()
     irlen = tool.detect_register_size()
-    arch = archmap.get(argv[1], archmap['murax'])
+    arch = archmap.get(argv[2], archmap['murax'])
     ocd = arch.Ocd(engine, irlen)
     memadr = arch.membaseadr    
     ocd.resetdm() 
     ocd.halt()
     ocd.writereg(5, 0x12345678)
+    time.sleep(3)
     ocd.writereg(4, 0x87654321)
-    time.sleep(0.5)
+    time.sleep(3)
     val = ocd.readreg(5);
     print("REG5:%08x" %val) 
     val = ocd.readreg(4);
     print("REG4:%08x" %val)     
     ocd.writemem(memadr,0xabcdefbc)
+    time.sleep(3)
     val = ocd.readmem(memadr)
     print("MEM:%08x" %val)
-    loadbinary(argv[1]+"/hello.bin",memadr)    
-    ocd.setpc(memadr+arch.bootofs)
+    loadbinary(argv[2]+".bin",memadr)    
+    ocd.setpc(arch.bootadr)
     ocd.resume()
-    time.sleep(2)
+    time.sleep(5) 
     engine.close()
     
         
