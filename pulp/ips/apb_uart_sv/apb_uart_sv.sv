@@ -339,7 +339,8 @@ module apb_uart_sv
         end
     end
 
-    assign register_adr = {PADDR[2:0]};
+    assign register_adr = {PADDR[4:2]};
+	//assign register_adr = {PADDR[2:0]};
     // APB logic: we are always ready to capture the data into our regs
     // not supporting transfare failure
     assign PREADY  = 1'b1;

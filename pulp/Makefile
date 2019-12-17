@@ -189,11 +189,13 @@ VERIL_FLAGS		:=	-O3 										\
 									-Wno-BLKANDNBLK					\
 									-Wno-CMPCONST						\
 									-Wno-MODDUP							\
+									-Wno-WIDTHCONCAT\
 									--exe										\
 									--threads	$(MAX_THREAD)	\
 									--trace-depth			1000	\
 									--trace-max-array	1000	\
 									--trace-max-width 1000	\
+                                    --trace-structs \
 									--cc
 CPPFLAGS_VERI	:=	"$(INCS_CPP) -O3 -g3  						\
 								        -Wno-aligned-new 							\

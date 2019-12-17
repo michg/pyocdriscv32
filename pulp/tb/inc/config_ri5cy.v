@@ -5,10 +5,10 @@
   `define PULP_SECURE         0
   `define N_PMP_ENTRIES       16
   `define USE_PMP             0
-  `define PULP_CLUSTER        0
-  `define FPU                 0
+  `define PULP_CLUSTER        1
+  `define FPU                 1
   `define Zfinx               0
-  `define FP_DIVSQRT          0
+  `define FP_DIVSQRT          1
   `define SHARED_FP           0
   `define SHARED_DSP_MULT     0
   `define SHARED_INT_DIV      0

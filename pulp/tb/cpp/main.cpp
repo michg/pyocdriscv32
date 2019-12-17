@@ -12,19 +12,25 @@
 
 #include "../../simframework/framework.h"
 #include "../../simframework/jtag.h"
+#include "../simframework/uart.h" 
 Workspace<Vriscv_soc> *murax;
 
 class MuraxWorkspace : public Workspace<Vriscv_soc>{
 public:
 	MuraxWorkspace(int vcd) : Workspace("Murax", vcd){
-		ClockDomain *mainClk = new ClockDomain(&top->core_clk, NULL, 20, 300);
-		AsyncReset *asyncReset = new AsyncReset(&top->reset_n, 500, 1);
-		
+		ClockDomain *mainClk = new ClockDomain(&top->core_clk, NULL, 20, 0);
+		AsyncReset *asyncReset = new AsyncReset(&top->reset_n, 1500, 1);
+		UartRx *uartRx = new UartRx(&top->tx_o,1.0e9/115200);
+		UartTx *uartTx = new UartTx(&top->rx_i,1.0e9/115200);
+ 
 
 		timeProcesses.push_back(mainClk);
 		timeProcesses.push_back(asyncReset);
+        timeProcesses.push_back(uartRx);
+		timeProcesses.push_back(uartTx);
+ 
 
-		Jtag *jtag = new Jtag(&top->jtag_tms,&top->jtag_tdi,&top->jtag_tdo,&top->jtag_tck, 50);
+		Jtag *jtag = new Jtag(&top->jtag_tms,&top->jtag_tdi,&top->jtag_tdo,&top->jtag_tck, 100);
 		timeProcesses.push_back(jtag);
 
 	}
