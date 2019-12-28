@@ -55,7 +55,10 @@ class Ftdi:
 
     SCHEME = 'ftdi'
     FTDI_VENDOR = 0x403
-    VENDOR_IDS = {'ftdi': FTDI_VENDOR}
+    VENDOR_IDS = {
+    'ftdi': FTDI_VENDOR,
+    'olimex': 0x15BA
+    }
     PRODUCT_IDS = {
         FTDI_VENDOR:
             {'232': 0x6001,
@@ -75,8 +78,10 @@ class Ftdi:
              'ft2232h': 0x6010,
              'ft4232': 0x6011,
              'ft4232h': 0x6011,
-             'ft230x': 0x6015}
-        }
+             'ft230x': 0x6015},
+       0x15BA:
+            {'ft2232h': 0x002A}
+       }
     DEFAULT_VENDOR = FTDI_VENDOR
 
     # Commands

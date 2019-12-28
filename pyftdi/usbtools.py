@@ -173,7 +173,11 @@ class UsbTools:
                     raise IOError("No such device")
             else:
                 devs = cls._find_devices(devdesc.vid, devdesc.pid)
-                dev = list(devs)[0] if devs else None
+                #dev = list(devs)[0] if devs else None
+                for dev in devs:
+                    if dev.address == 1:
+                        break
+
             if not dev:
                 raise IOError('Device not found')
             try:

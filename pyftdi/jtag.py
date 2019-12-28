@@ -252,6 +252,8 @@ class JtagController:
         if not isinstance(tms, BitSequence):
             raise JtagError('Expect a BitSequence')
         length = len(tms)
+        if length == 0:
+            return
         if not (0 < length < 8):
             raise JtagError('Invalid TMS length')
         out = BitSequence(tms, length=8)
@@ -312,14 +314,14 @@ class JtagController:
             raise JtagError("Nothing to shift")
         if byte_count:
             blen = byte_count-1
-            # print("RW OUT %s" % out[:pos])
+            #print("RW OUT %s" % out[:pos])
             cmd = array('B',
                         (Ftdi.RW_BYTES_PVE_NVE_LSB, blen, (blen >> 8) & 0xff))
             cmd.extend(out[:pos].tobytes(msby=True))
-            self._stack_cmd(cmd)
+            self._stack_cmd(bytearray(cmd.tobytes()))
             # print("push %d bytes" % byte_count)
         if bit_count:
-            # print("RW OUT %s" % out[pos:])
+            #print("RW OUT %s" % out[pos:])
             cmd = bytearray((Ftdi.RW_BITS_PVE_NVE_LSB, bit_count-1))
             cmd.append(out[pos:].tobyte())
             self._stack_cmd(cmd)
@@ -334,9 +336,9 @@ class JtagController:
             if not data:
                 raise JtagError('Unable to read data from FTDI')
             byteseq = BitSequence(bytes_=data, length=8*byte_count)
-            # print("RW IN %s" % byteseq)
+            #print("RW IN %s" % byteseq)
             bs.append(byteseq)
-            # print("pop %d bytes" % byte_count)
+            #print("pop %d bytes" % byte_count)
         if bit_count:
             data = self._ftdi.read_data_bytes(1, 4)
             if not data:
@@ -352,7 +354,7 @@ class JtagController:
         return bs
 
     def _stack_cmd(self, cmd):
-        if not isinstance(cmd, array):
+        if not isinstance(cmd, bytearray):
             raise TypeError('Expect a byte array')
         if not self._ftdi:
             raise JtagError("FTDI controller terminated")
