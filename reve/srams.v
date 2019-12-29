@@ -258,7 +258,11 @@ module se_sram_srw_16384x32_we8(sram_clock, sram_clock__enable, write_data, addr
    input [address_width-1:0] address;
    input [data_width-1:0]    write_data;
    output [data_width-1:0]   data_out;
-   se_sram_srw_we8_unused #(address_width,data_width,initfile) ram(sram_clock,sram_clock__enable,write_data,address,write_enable,read_not_write,select,data_out);
+    `ifdef VERILATOR 
+       se_sram_srw_we8_unused #(address_width,data_width,initfile) ram(sram_clock,sram_clock__enable,write_data,address,write_enable,read_not_write,select,data_out);
+    `else
+       se_sram_srw_we8 #(address_width,data_width,initfile) ram(sram_clock,sram_clock__enable,write_data,address,write_enable,read_not_write,select,data_out);
+    `endif
 endmodule
 
 //m se_sram_srw_16384x32

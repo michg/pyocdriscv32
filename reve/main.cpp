@@ -60,10 +60,6 @@ int main(int argc, char **argv, char **env) {
 	timespec startedAt = timer_start();
 
 	murax  = new MuraxWorkspace(vcd);
-    murax->top->jtag_ntrst = 1;
-    murax->top->jtag_tck_enable = 1;
-    murax->top->clk_enable = 1;
-    murax->top->uart_rx_rts = 1;
     murax->top->uart_rx_rxd = 1;    
 	murax->run(100e6);
 

@@ -1,0 +1,103 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 2019  Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions 
+# and other software and tools, and any partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Intel Program License 
+# Subscription Agreement, the Intel Quartus Prime License Agreement,
+# the Intel FPGA IP License Agreement, or other applicable license
+# agreement, including, without limitation, that your use is for
+# the sole purpose of programming logic devices manufactured by
+# Intel and sold by Intel or its authorized distributors.  Please
+# refer to the applicable agreement for further details, at
+# https://fpgasoftware.intel.com/eula.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus Prime
+# Version 18.1.1 Build 646 24/12/2019 SJ Lite Edition
+# Date created = 12:22:50  December 24, 2019
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		top_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus Prime software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+set_global_assignment -name FAMILY "Cyclone IV E"
+set_global_assignment -name DEVICE EP4CE115F29C7
+set_global_assignment -name TOP_LEVEL_ENTITY top
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 18.1.1
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "12:22:50  DECEMBER 09, 2019"
+set_global_assignment -name LAST_QUARTUS_VERSION "18.1.1 Lite Edition"
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name VERILOG_FILE ../clock_divider.v
+set_global_assignment -name VERILOG_FILE ../uart_minimal.v
+set_global_assignment -name VERILOG_FILE ../apb_target_uart_minimal.v
+set_global_assignment -name VERILOG_FILE ../riscv_csrs_machine_debug.v
+set_global_assignment -name VERILOG_FILE ../riscv_i32_alu.v
+set_global_assignment -name VERILOG_FILE ../riscv_i32_dmem_request.v
+set_global_assignment -name VERILOG_FILE ../riscv_i32_dmem_read_data.v
+set_global_assignment -name VERILOG_FILE ../riscv_csrs_decode.v
+set_global_assignment -name VERILOG_FILE ../riscv_i32c_decode.v
+set_global_assignment -name VERILOG_FILE ../riscv_i32_decode.v
+set_global_assignment -name VERILOG_FILE ../riscv_i32c_pipeline.v
+set_global_assignment -name VERILOG_FILE ../riscv_i32_pipeline_trap_interposer.v
+set_global_assignment -name VERILOG_FILE ../riscv_i32_pipeline_control_flow.v
+set_global_assignment -name VERILOG_FILE ../clock_timer.v
+set_global_assignment -name VERILOG_FILE ../srams.v
+set_global_assignment -name VERILOG_FILE ../riscv_i32_pipeline_control_fetch_req.v
+set_global_assignment -name VERILOG_FILE ../riscv_i32_pipeline_control_fetch_data.v
+set_global_assignment -name VERILOG_FILE ../riscv_i32_pipeline_control.v
+set_global_assignment -name VERILOG_FILE ../top.v
+set_global_assignment -name VERILOG_FILE ../riscv_jtag_apb_dm.v
+set_global_assignment -name VERILOG_FILE ../riscv_i32_trace.v
+set_global_assignment -name VERILOG_FILE ../riscv_i32_minimal_apb.v
+set_global_assignment -name VERILOG_FILE ../riscv_i32_minimal.v
+set_global_assignment -name VERILOG_FILE ../riscv_i32_debug.v
+set_global_assignment -name VERILOG_FILE ../jtag_tap.v
+set_global_assignment -name VERILOG_FILE ../apb_target_sram_interface.v
+set_global_assignment -name VERILOG_FILE ../apb_target_rv_timer.v
+set_global_assignment -name VERILOG_FILE ../apb_master_mux.v
+set_location_assignment PIN_Y2 -to clk
+set_location_assignment PIN_G12 -to uart_rx_rxd
+set_location_assignment PIN_G9 -to uart_tx_txd
+set_location_assignment PIN_M23 -to reset_n
+set_location_assignment PIN_AB22 -to jtag_tms
+set_location_assignment PIN_AC15 -to jtag_tdi
+set_location_assignment PIN_Y17 -to jtag_tck
+set_location_assignment PIN_AB21 -to tdo
+set_global_assignment -name ENABLE_OCT_DONE OFF
+set_global_assignment -name ENABLE_CONFIGURATION_PINS OFF
+set_global_assignment -name ENABLE_BOOT_SEL_PIN OFF
+set_global_assignment -name USE_CONFIGURATION_DEVICE ON
+set_global_assignment -name CRC_ERROR_OPEN_DRAIN OFF
+set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -rise
+set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -fall
+set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -rise
+set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -fall
+set_global_assignment -name ENABLE_SIGNALTAP ON
+set_global_assignment -name USE_SIGNALTAP_FILE stp1.stp
+set_global_assignment -name SIGNALTAP_FILE stp1.stp
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

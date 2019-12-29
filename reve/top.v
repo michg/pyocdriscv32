@@ -15,42 +15,51 @@
 module top
 (
     jtag_tck,
-    jtag_tck_enable,
+    //jtag_tck__enable,
     clk,
-    clk_enable,
+    //clk__enable,
 
     reset_n,
     uart_rx_rxd,
-    uart_rx_rts,
-    jtag_ntrst,
+    //uart_rx_rts,
+    //jtag_ntrst,
     jtag_tms,
     jtag_tdi,
 
     uart_tx_txd,
-    uart_tx_cts,
+    //uart_tx_cts,
     tdo
 );
 
 
     //b Clocks
     input jtag_tck;
-    input jtag_tck_enable;
+    //input jtag_tck_enable;
+	 wire jtag_tck_enable;
+	 assign jtag_tck_enable = 1'b1;
+	 
     wire jtag_tck_gated; // Gated version of clock 'jtag_tck' enabled by 'tck_enable_fix'
     wire jtag_tck_gated__enable;
     input clk;
-    input clk_enable;
+    //input clk_enable;
+	 wire clk_enable;
+	 assign clk_enable = 1'b1;
 
     //b Inputs
     input reset_n;
     input uart_rx_rxd;
-    input uart_rx_rts;
-    input jtag_ntrst;
+    //input uart_rx_rts;
+    wire uart_rx_rts;
+	assign uart_rx_rts = 1'b1;
+    //input jtag_ntrst;
+    wire jtag_ntrst;
+	assign jtag_ntrst = 1'b1;
     input jtag_tms;
     input jtag_tdi;
 
     //b Outputs
     output uart_tx_txd;
-    output uart_tx_cts;
+    //output uart_tx_cts;
     output tdo;
 
 // output components here
