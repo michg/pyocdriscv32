@@ -61,11 +61,11 @@ module dmi_jtag_tap #(
     tap_state_e tap_state_q, tap_state_d;
 
     typedef enum logic [IrLength-1:0] {
-        BYPASS0   = 'h0,
-        IDCODE    = 'h1,
-        DTMCSR    = 'h10,
-        DMIACCESS = 'h11,
-        BYPASS1   = 'h1f
+        BYPASS0   = 5'h0,
+        IDCODE    = 5'h1,
+        DTMCSR    = 5'h10,
+        DMIACCESS = 5'h11,
+        BYPASS1   = 5'h1f
     } ir_reg_e;
 
     typedef struct packed {
@@ -217,12 +217,15 @@ module dmi_jtag_tap #(
         .clk_o ( tck_ni )
     );
 
+/*
     pulp_clock_mux2 i_dft_tck_mux (
         .clk0_i    ( tck_ni     ),
         .clk1_i    ( tck_i      ), // bypass the inverted clock for testing
         .clk_sel_i ( testmode_i ),
         .clk_o     ( tck_n      )
     );
+*/
+    assign tck_n = tck_ni;  // pulp_clock_mux2 doesn't really want to work with Quartus
 
     // TDO changes state at negative edge of TCK
     always_ff @(posedge tck_n, negedge trst_ni) begin

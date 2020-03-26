@@ -104,7 +104,7 @@ module ahb3lite_interconnect #(
   parameter              MASTERS              = 3, //number of AHB Masters
   parameter              SLAVES               = 8, //number of AHB slaves
 
-  parameter [SLAVES-1:0] SLAVE_MASK [MASTERS] = '{MASTERS{ {SLAVES{1'b1}} }}
+  parameter logic [SLAVES-1:0] SLAVE_MASK [MASTERS] = '{MASTERS{ {SLAVES{1'b1}} }}
 )
 (
   //Common signals

@@ -234,10 +234,12 @@ module dm_csrs #(
         sbdata_write_valid_o    = 1'b0;
         clear_resumeack_o       = 1'b0;
 
+        `define DM_CSRS_CASE_EQ(VAL) ({1'b0, dmi_req_i.addr} == VAL)
+        `define DM_CSRS_CASE_RANGE(VAL1, VAL2) ((({1'b0, dmi_req_i.addr}) >= VAL1) && (({1'b0, dmi_req_i.addr}) <= VAL2))
         // reads
         if (dmi_req_ready_o && dmi_req_valid_i && dtm_op == dm::DTM_READ) begin
-            unique case ({1'b0, dmi_req_i.addr}) inside
-                [(dm::Data0):DataEnd]: begin
+            //unique case ({1'b0, dmi_req_i.addr}) inside
+                if (`DM_CSRS_CASE_RANGE(dm::Data0, DataEnd)) begin
                     if (dm::DataCount > 0) begin
                         resp_queue_data = data_q[dmi_req_i.addr[4:0]];
                     end
@@ -247,14 +249,14 @@ module dm_csrs #(
                                       int'(dm::Data0)];
                     end
                 end
-                dm::DMControl:    resp_queue_data = dmcontrol_q;
-                dm::DMStatus:     resp_queue_data = dmstatus;
-                dm::Hartinfo:     resp_queue_data = hartinfo_i[selected_hart];
-                dm::AbstractCS:   resp_queue_data = abstractcs;
-                dm::AbstractAuto: resp_queue_data = abstractauto_q;
+                else if (`DM_CSRS_CASE_EQ(dm::DMControl))    resp_queue_data = dmcontrol_q;
+                else if (`DM_CSRS_CASE_EQ(dm::DMStatus))     resp_queue_data = dmstatus;
+                else if (`DM_CSRS_CASE_EQ(dm::Hartinfo))     resp_queue_data = hartinfo_i[selected_hart];
+                else if (`DM_CSRS_CASE_EQ(dm::AbstractCS))   resp_queue_data = abstractcs;
+                else if (`DM_CSRS_CASE_EQ(dm::AbstractAuto)) resp_queue_data = abstractauto_q;
                 // command is read-only
-                dm::Command:    resp_queue_data = '0;
-                [(dm::ProgBuf0):ProgBufEnd]: begin
+                else if (`DM_CSRS_CASE_EQ(dm::Command))    resp_queue_data = '0;
+                else if (`DM_CSRS_CASE_RANGE(dm::ProgBuf0, ProgBufEnd)) begin
                     resp_queue_data = progbuf_q[dmi_req_i.addr[4:0]];
                     if (!cmdbusy_i) begin
                         // check whether we need to re-execute the command (just give a cmd_valid)
@@ -262,14 +264,14 @@ module dm_csrs #(
                         cmd_valid_d = abstractauto_q.autoexecprogbuf[dmi_req_i.addr[3:0]+16];
                     end
                 end
-                dm::HaltSum0: resp_queue_data = haltsum0;
-                dm::HaltSum1: resp_queue_data = haltsum1;
-                dm::HaltSum2: resp_queue_data = haltsum2;
-                dm::HaltSum3: resp_queue_data = haltsum3;
-                dm::SBCS: begin
+                else if (`DM_CSRS_CASE_EQ(dm::HaltSum0)) resp_queue_data = haltsum0;
+                else if (`DM_CSRS_CASE_EQ(dm::HaltSum1)) resp_queue_data = haltsum1;
+                else if (`DM_CSRS_CASE_EQ(dm::HaltSum2)) resp_queue_data = haltsum2;
+                else if (`DM_CSRS_CASE_EQ(dm::HaltSum3)) resp_queue_data = haltsum3;
+                else if (`DM_CSRS_CASE_EQ(dm::SBCS)) begin
                     resp_queue_data = sbcs_q;
                 end
-                dm::SBAddress0: begin
+                else if (`DM_CSRS_CASE_EQ(dm::SBAddress0)) begin
                     // access while the SBA was busy
                     if (sbbusy_i) begin
                        sbcs_d.sbbusyerror = 1'b1;
@@ -277,7 +279,7 @@ module dm_csrs #(
                         resp_queue_data = sbaddr_q[31:0];
                     end
                 end
-                dm::SBAddress1: begin
+                else if (`DM_CSRS_CASE_EQ(dm::SBAddress1)) begin
                     // access while the SBA was busy
                     if (sbbusy_i) begin
                        sbcs_d.sbbusyerror = 1'b1;
@@ -285,7 +287,7 @@ module dm_csrs #(
                         resp_queue_data = sbaddr_q[63:32];
                     end
                 end
-                dm::SBData0: begin
+                else if (`DM_CSRS_CASE_EQ(dm::SBData0)) begin
                     // access while the SBA was busy
                     if (sbbusy_i) begin
                        sbcs_d.sbbusyerror = 1'b1;
@@ -294,7 +296,7 @@ module dm_csrs #(
                         resp_queue_data = sbdata_q[31:0];
                     end
                 end
-                dm::SBData1: begin
+                else if (`DM_CSRS_CASE_EQ(dm::SBData1)) begin
                     // access while the SBA was busy
                     if (sbbusy_i) begin
                        sbcs_d.sbbusyerror = 1'b1;
@@ -302,14 +304,14 @@ module dm_csrs #(
                         resp_queue_data = sbdata_q[63:32];
                     end
                 end
-                default:;
-            endcase
+                //default:;
+            //endcase
         end
 
         // write
         if (dmi_req_ready_o && dmi_req_valid_i && dtm_op == dm::DTM_WRITE) begin
-            unique case (dm::dm_csr_e'({1'b0, dmi_req_i.addr})) inside
-                [(dm::Data0):DataEnd]: begin
+            //unique case (dm::dm_csr_e'({1'b0, dmi_req_i.addr})) inside
+                if (`DM_CSRS_CASE_RANGE(dm::Data0, DataEnd)) begin
                     // attempts to write them while busy is set does not change their value
                     if (!cmdbusy_i && dm::DataCount > 0) begin
                         data_d[dmi_req_i.addr[4:0]] = dmi_req_i.data;
@@ -318,7 +320,7 @@ module dm_csrs #(
                                       int'(dm::Data0)];
                     end
                 end
-                dm::DMControl: begin
+                else if (`DM_CSRS_CASE_EQ(dm::DMControl)) begin
                     automatic dm::dmcontrol_t dmcontrol;
                     dmcontrol = dm::dmcontrol_t'(dmi_req_i.data);
                     // clear the havreset of the selected hart
@@ -327,10 +329,10 @@ module dm_csrs #(
                     end
                     dmcontrol_d = dmi_req_i.data;
                 end
-                dm::DMStatus:; // write are ignored to R/O register
-                dm::Hartinfo:; // hartinfo is R/O
+                else if (`DM_CSRS_CASE_EQ(dm::DMStatus)); // write are ignored to R/O register
+                else if (`DM_CSRS_CASE_EQ(dm::Hartinfo)); // hartinfo is R/O
                 // only command error is write-able
-                dm::AbstractCS: begin // W1C
+                else if (`DM_CSRS_CASE_EQ(dm::AbstractCS)) begin // W1C
                     // Gets set if an abstract command fails. The bits in this
                     // field remain set until they are cleared by writing 1 to
                     // them. No abstract command is started until the value is
@@ -345,7 +347,7 @@ module dm_csrs #(
                     end
 
                 end
-                dm::Command: begin
+                else if (`DM_CSRS_CASE_EQ(dm::Command)) begin
                     // writes are ignored if a command is already busy
                     if (!cmdbusy_i) begin
                         cmd_valid_d = 1'b1;
@@ -356,7 +358,7 @@ module dm_csrs #(
                         cmderr_d = dm::CmdErrBusy;
                     end
                 end
-                dm::AbstractAuto: begin
+                else if (`DM_CSRS_CASE_EQ(dm::AbstractAuto)) begin
                     // this field can only be written legally when there is no command executing
                     if (!cmdbusy_i) begin
                         abstractauto_d                 = 32'b0;
@@ -367,7 +369,7 @@ module dm_csrs #(
                         cmderr_d = dm::CmdErrBusy;
                     end
                 end
-                [(dm::ProgBuf0):ProgBufEnd]: begin
+                else if (`DM_CSRS_CASE_RANGE(dm::ProgBuf0, ProgBufEnd)) begin
                     // attempts to write them while busy is set does not change their value
                     if (!cmdbusy_i) begin
                         progbuf_d[dmi_req_i.addr[4:0]] = dmi_req_i.data;
@@ -379,7 +381,7 @@ module dm_csrs #(
                         cmd_valid_d = abstractauto_q.autoexecprogbuf[dmi_req_i.addr[3:0]+16];
                     end
                 end
-                dm::SBCS: begin
+                else if (`DM_CSRS_CASE_EQ(dm::SBCS)) begin
                     // access while the SBA was busy
                     if (sbbusy_i) begin
                         sbcs_d.sbbusyerror = 1'b1;
@@ -392,7 +394,7 @@ module dm_csrs #(
                         sbcs_d.sberror     = sbcs_q.sberror     & (~sbcs.sberror);
                     end
                 end
-                dm::SBAddress0: begin
+                else if (`DM_CSRS_CASE_EQ(dm::SBAddress0)) begin
                     // access while the SBA was busy
                     if (sbbusy_i) begin
                        sbcs_d.sbbusyerror = 1'b1;
@@ -401,7 +403,7 @@ module dm_csrs #(
                         sbaddress_write_valid_o = (sbcs_q.sberror == '0);
                     end
                 end
-                dm::SBAddress1: begin
+                else if (`DM_CSRS_CASE_EQ(dm::SBAddress1)) begin
                     // access while the SBA was busy
                     if (sbbusy_i) begin
                        sbcs_d.sbbusyerror = 1'b1;
@@ -409,7 +411,7 @@ module dm_csrs #(
                         sbaddr_d[63:32] = dmi_req_i.data;
                     end
                 end
-                dm::SBData0: begin
+                else if (`DM_CSRS_CASE_EQ(dm::SBData0)) begin
                     // access while the SBA was busy
                     if (sbbusy_i) begin
                        sbcs_d.sbbusyerror = 1'b1;
@@ -418,7 +420,7 @@ module dm_csrs #(
                         sbdata_write_valid_o = (sbcs_q.sberror == '0);
                     end
                 end
-                dm::SBData1: begin
+                else if (`DM_CSRS_CASE_EQ(dm::SBData1)) begin
                     // access while the SBA was busy
                     if (sbbusy_i) begin
                        sbcs_d.sbbusyerror = 1'b1;
@@ -426,8 +428,8 @@ module dm_csrs #(
                         sbdata_d[63:32] = dmi_req_i.data;
                     end
                 end
-                default:;
-            endcase
+                //default:;
+            //endcase
         end
         // hart threw a command error and has precedence over bus writes
         if (cmderror_valid_i) begin
@@ -505,7 +507,7 @@ module dm_csrs #(
 
     // response FIFO
     fifo_v2 #(
-        .dtype            ( logic [31:0]         ),
+        .dtype_w          ( 32                   ),
         .DEPTH            ( 2                    )
     ) i_fifo (
         .clk_i            ( clk_i                ),
@@ -576,7 +578,9 @@ module dm_csrs #(
     end
 
 
-    for (genvar k = 0; k < NrHarts; k++) begin : gen_havereset
+    generate
+    genvar k;
+    for (k = 0; k < NrHarts; k++) begin : gen_havereset
         always_ff @(posedge clk_i or negedge rst_ni) begin
             if (!rst_ni) begin
                 havereset_q[k] <= 1'b1;
@@ -585,6 +589,7 @@ module dm_csrs #(
             end
         end
     end
+    endgenerate
 
 ///////////////////////////////////////////////////////
 // assertions

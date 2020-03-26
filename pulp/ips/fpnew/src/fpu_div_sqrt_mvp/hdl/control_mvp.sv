@@ -38,7 +38,6 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-import defs_div_sqrt_mvp::*;
 
 module control_mvp
 
@@ -79,6 +78,8 @@ module control_mvp
  //  output logic [3:0]                                 Round_bit_DO,
    output logic [C_EXP_FP64+1:0]                      Exp_result_prenorm_DO
  );
+ 
+import defs_div_sqrt_mvp::*;
 
    logic  [C_MANT_FP64+1+4:0]                         Partial_remainder_DN,Partial_remainder_DP; //58bits,r=q+2
    logic  [C_MANT_FP64+4:0]                           Quotient_DP; //57bits
@@ -2340,8 +2341,8 @@ module control_mvp
   generate
     genvar i,j;
       for (i=0; i <= Iteration_unit_num_S ; i++)
-        begin
-          for (j = 0; j <= C_MANT_FP64+5; j++) begin
+        begin: block0
+          for (j = 0; j <= C_MANT_FP64+5; j++) begin: block1
               assign Iteration_cell_a_D[i][j] = Mask_bits_ctl_S[j] && Iteration_cell_a_BMASK_D[i][j];
               assign Iteration_cell_b_D[i][j] = Mask_bits_ctl_S[j] && Iteration_cell_b_BMASK_D[i][j];
               assign Iteration_cell_sum_AMASK_D[i][j] = Mask_bits_ctl_S[j] && Iteration_cell_sum_D[i][j];

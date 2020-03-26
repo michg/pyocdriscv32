@@ -88,6 +88,7 @@ module riscv_register_file
   //-----------------------------------------------------------------------------
   //-- READ : Read address decoder RAD
   //-----------------------------------------------------------------------------
+  generate
   if (FPU == 1 && Zfinx == 0) begin
      assign rdata_a_o = raddr_a_i[5] ? mem_fp[raddr_a_i[4:0]] : mem[raddr_a_i[4:0]];
      assign rdata_b_o = raddr_b_i[5] ? mem_fp[raddr_b_i[4:0]] : mem[raddr_b_i[4:0]];
@@ -97,7 +98,7 @@ module riscv_register_file
      assign rdata_b_o = mem[raddr_b_i[4:0]];
      assign rdata_c_o = mem[raddr_c_i[4:0]];
   end
-
+  endgenerate
   //-----------------------------------------------------------------------------
   //-- WRITE : Write Address Decoder (WAD), combinatorial process
   //-----------------------------------------------------------------------------
@@ -163,7 +164,7 @@ module riscv_register_file
 
     if (FPU == 1) begin
       // Floating point registers
-      for(l = 0; l < NUM_FP_WORDS; l++) begin
+      for(l = 0; l < NUM_FP_WORDS; l++) begin: block0
         always_ff @(posedge clk, negedge rst_n)
         begin : fp_regs
           if (rst_n==1'b0)

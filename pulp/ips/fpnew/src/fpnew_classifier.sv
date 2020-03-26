@@ -10,14 +10,18 @@
 // specific language governing permissions and limitations under the License.
 
 // Author: Stefan Mach <smach@iis.ee.ethz.ch>
+function int get_FpWidth(input  fpnew_pkg::fp_format_e f);    
+  get_FpWidth = fpnew_pkg::fp_width(f);
+endfunction
+
+
 
 module fpnew_classifier #(
   parameter fpnew_pkg::fp_format_e   FpFormat = fpnew_pkg::fp_format_e'(0),
-  parameter int unsigned             NumOperands = 1,
+  parameter int unsigned             NumOperands = 1
   // Do not change
-  localparam int unsigned WIDTH = fpnew_pkg::fp_width(FpFormat)
 ) (
-  input  logic                [NumOperands-1:0][WIDTH-1:0] operands_i,
+  input  logic                [NumOperands-1:0][get_FpWidth(FpFormat)-1:0] operands_i,
   input  logic                [NumOperands-1:0]            is_boxed_i,
   output fpnew_pkg::fp_info_t [NumOperands-1:0]            info_o
 );
@@ -33,7 +37,9 @@ module fpnew_classifier #(
   } fp_t;
 
   // Iterate through all operands
-  for (genvar op = 0; op < int'(NumOperands); op++) begin : gen_num_values
+  generate
+  genvar op;
+  for (op = 0; op < int'(NumOperands); op++) begin : gen_num_values
 
     fp_t value;
     logic is_boxed;
@@ -69,4 +75,5 @@ module fpnew_classifier #(
       info_o[op].is_boxed      = is_boxed;
     end
   end
+  endgenerate
 endmodule

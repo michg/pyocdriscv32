@@ -31,7 +31,7 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-import defs_div_sqrt_mvp::*;
+
 
 module nrbd_nrsc_mvp
 
@@ -65,7 +65,8 @@ module nrbd_nrsc_mvp
    output logic [C_EXP_FP64+1:0]               Exp_z_DO
     );
 
-
+import defs_div_sqrt_mvp::*;
+	 
     logic                                     Div_start_dly_S,Sqrt_start_dly_S;
 
 

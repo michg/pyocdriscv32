@@ -18,7 +18,7 @@ Workspace<Vriscv_soc> *murax;
 class MuraxWorkspace : public Workspace<Vriscv_soc>{
 public:
 	MuraxWorkspace(int vcd) : Workspace("Murax", vcd){
-		ClockDomain *mainClk = new ClockDomain(&top->core_clk, NULL, 20, 0);
+		ClockDomain *mainClk = new ClockDomain(&top->clk_i, NULL, 20, 0);
 		AsyncReset *asyncReset = new AsyncReset(&top->reset_n, 1500, 1);
 		UartRx *uartRx = new UartRx(&top->tx_o,1.0e9/115200);
 		UartTx *uartTx = new UartTx(&top->rx_i,1.0e9/115200);
@@ -61,9 +61,9 @@ int main(int argc, char **argv, char **env) {
 	timespec startedAt = timer_start();
 
 	murax  = new MuraxWorkspace(vcd);
-	murax->top->boot_addr_i = 0x1A000000;
-	murax->top->jtag_trstn = 1;
-    murax->top->fetch_enable_i = 1;
+	//murax->top->boot_addr_i = 0x1A000000;
+	//murax->top->jtag_trstn = 1;
+    //murax->top->fetch_enable_i = 1;
 	murax->run(100e6);
 
 	uint64_t duration = timer_end(startedAt);

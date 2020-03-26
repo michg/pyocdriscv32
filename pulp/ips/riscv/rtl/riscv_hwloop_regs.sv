@@ -98,11 +98,13 @@ module riscv_hwloop_regs
   /////////////////////////////////////////////////////////////////////////////////
   // HWLOOP counter register with decrement logic                                //
   /////////////////////////////////////////////////////////////////////////////////
+  generate
   genvar k;
-  for (k = 0; k < N_REGS; k++) begin
+  for (k = 0; k < N_REGS; k++) begin: block0
     assign hwlp_counter_n[k] = hwlp_counter_q[k] - 1;
   end
-
+  endgenerate
+  
   always_ff @(posedge clk, negedge rst_n)
   begin : HWLOOP_REGS_COUNTER
     if (rst_n == 1'b0)

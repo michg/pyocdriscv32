@@ -27,7 +27,7 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-import riscv_defines::*;
+
 
 module riscv_controller
 #(
@@ -183,7 +183,8 @@ module riscv_controller
   output logic        perf_ld_stall_o,            // stall due to load-use-hazard
   output logic        perf_pipeline_stall_o       // stall due to elw extra cycles
 );
-
+  
+  import riscv_defines::*;
   // FSM state encoding
   enum  logic [4:0] { RESET, BOOT_SET, SLEEP, WAIT_SLEEP, FIRST_FETCH,
                       DECODE,
@@ -200,8 +201,6 @@ module riscv_controller
   logic ebrk_force_debug_mode;
 
   logic illegal_insn_q, illegal_insn_n;
-
-  logic instr_valid_irq_flush_n, instr_valid_irq_flush_q;
 
 `ifndef SYNTHESIS
   // synopsys translate_off
@@ -288,12 +287,6 @@ module riscv_controller
     // - Debuger requests halt
 
     perf_pipeline_stall_o  = 1'b0;
-
-
-    //this signal goes to 1 only registered interrupt requests are killed by exc_kill_o
-    //so that the current instructions will have the deassert_we_o signal equal to 0 once the controller is back to DECODE
-    instr_valid_irq_flush_n = 1'b0;
-
 
     unique case (ctrl_fsm_cs)
       // We were just reset, wait for fetch_enable
@@ -432,7 +425,7 @@ module riscv_controller
           // decode and execute instructions only if the current conditional
           // branch in the EX stage is either not taken, or there is no
           // conditional branch in the EX stage
-          else if (instr_valid_i || instr_valid_irq_flush_q) //valid block or replay after interrupt speculation
+          else if (instr_valid_i) //valid block or replay after interrupt speculation
           begin // now analyze the current instruction in the ID stage
 
             is_decoding_o = 1'b1;
@@ -644,7 +637,6 @@ module riscv_controller
           end else begin
             // we can go back to decode in case the IRQ is not taken (no ELW REPLAY)
             exc_kill_o   = 1'b1;
-            instr_valid_irq_flush_n =1'b1;
             ctrl_fsm_ns  = DECODE;
           end
         end
@@ -1067,8 +1059,6 @@ module riscv_controller
       debug_mode_q   <= 1'b0;
       illegal_insn_q <= 1'b0;
 
-      instr_valid_irq_flush_q <= 1'b0;
-
     end
     else
     begin
@@ -1083,7 +1073,6 @@ module riscv_controller
 
       illegal_insn_q <= illegal_insn_n;
 
-      instr_valid_irq_flush_q <= instr_valid_irq_flush_n;
     end
   end
 

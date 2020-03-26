@@ -11,18 +11,17 @@
 
 // Author: Stefan Mach <smach@iis.ee.ethz.ch>
 
-`include "common_cells/registers.svh"
+
+`include "registers.svh"
 
 module fpnew_divsqrt_multi #(
   parameter fpnew_pkg::fmt_logic_t   FpFmtConfig  = '1,
   // FPU configuration
   parameter int unsigned             NumPipeRegs = 0,
   parameter fpnew_pkg::pipe_config_t PipeConfig  = fpnew_pkg::AFTER,
-  parameter type                     TagType     = logic,
-  parameter type                     AuxType     = logic,
+  parameter int unsigned  Auxbits = 1
   // Do not change
-  localparam int unsigned WIDTH       = fpnew_pkg::max_fp_width(FpFmtConfig),
-  localparam int unsigned NUM_FORMATS = fpnew_pkg::NUM_FP_FORMATS
+  
 ) (
   input  logic                        clk_i,
   input  logic                        rst_ni,
@@ -32,8 +31,8 @@ module fpnew_divsqrt_multi #(
   input  fpnew_pkg::roundmode_e       rnd_mode_i,
   input  fpnew_pkg::operation_e       op_i,
   input  fpnew_pkg::fp_format_e       dst_fmt_i,
-  input  TagType                      tag_i,
-  input  AuxType                      aux_i,
+  input  logic                      tag_i,
+  input  logic [Auxbits-1:0]                      aux_i,
   // Input Handshake
   input  logic                        in_valid_i,
   output logic                        in_ready_o,
@@ -42,15 +41,16 @@ module fpnew_divsqrt_multi #(
   output logic [WIDTH-1:0]            result_o,
   output fpnew_pkg::status_t          status_o,
   output logic                        extension_bit_o,
-  output TagType                      tag_o,
-  output AuxType                      aux_o,
+  output logic                      tag_o,
+  output logic[Auxbits-1:0]                      aux_o,
   // Output handshake
   output logic                        out_valid_o,
   input  logic                        out_ready_i,
   // Indication of valid data in flight
   output logic                        busy_o
 );
-
+  localparam int unsigned WIDTH       = fpnew_pkg::max_fp_width(FpFmtConfig);
+  localparam int unsigned NUM_FORMATS = fpnew_pkg::NUM_FP_FORMATS;
   // ----------
   // Constants
   // ----------
@@ -71,18 +71,18 @@ module fpnew_divsqrt_multi #(
   // ---------------
   // Selected pipeline output signals as non-arrays
   logic [1:0][WIDTH-1:0] operands_q;
-  fpnew_pkg::roundmode_e rnd_mode_q;
-  fpnew_pkg::operation_e op_q;
-  fpnew_pkg::fp_format_e dst_fmt_q;
+  logic [2:0] rnd_mode_q;
+  logic [fpnew_pkg::OP_BITS-1:0] op_q;
+  logic [fpnew_pkg::FP_FORMAT_BITS-1:0] dst_fmt_q;
   logic                  in_valid_q;
 
   // Input pipeline signals, index i holds signal after i register stages
   logic                  [0:NUM_INP_REGS][1:0][WIDTH-1:0]       inp_pipe_operands_q;
-  fpnew_pkg::roundmode_e [0:NUM_INP_REGS]                       inp_pipe_rnd_mode_q;
-  fpnew_pkg::operation_e [0:NUM_INP_REGS]                       inp_pipe_op_q;
-  fpnew_pkg::fp_format_e [0:NUM_INP_REGS]                       inp_pipe_dst_fmt_q;
-  TagType                [0:NUM_INP_REGS]                       inp_pipe_tag_q;
-  AuxType                [0:NUM_INP_REGS]                       inp_pipe_aux_q;
+  logic [0:NUM_INP_REGS]   [2:0]                     inp_pipe_rnd_mode_q;
+  logic  [0:NUM_INP_REGS] [fpnew_pkg::OP_BITS-1:0]                       inp_pipe_op_q;
+  logic  [0:NUM_INP_REGS] [fpnew_pkg::FP_FORMAT_BITS-1:0]                      inp_pipe_dst_fmt_q;
+  logic                [0:NUM_INP_REGS]                       inp_pipe_tag_q;
+  logic                [0:NUM_INP_REGS]   [Auxbits-1:0]                    inp_pipe_aux_q;
   logic                  [0:NUM_INP_REGS]                       inp_pipe_valid_q;
   // Ready signal is combinatorial for all stages
   logic [0:NUM_INP_REGS] inp_pipe_ready;
@@ -98,7 +98,9 @@ module fpnew_divsqrt_multi #(
   // Input stage: Propagate pipeline ready signal to updtream circuitry
   assign in_ready_o = inp_pipe_ready[0];
   // Generate the register stages
-  for (genvar i = 0; i < NUM_INP_REGS; i++) begin : gen_input_pipeline
+  generate
+  genvar i;
+  for (i = 0; i < NUM_INP_REGS; i++) begin : gen_input_pipeline
     // Internal register enable for this stage
     logic reg_ena;
     // Determine the ready signal of the current stage - advance the pipeline:
@@ -114,9 +116,10 @@ module fpnew_divsqrt_multi #(
     `FFL(inp_pipe_rnd_mode_q[i+1], inp_pipe_rnd_mode_q[i], reg_ena, fpnew_pkg::RNE)
     `FFL(inp_pipe_op_q[i+1],       inp_pipe_op_q[i],       reg_ena, fpnew_pkg::FMADD)
     `FFL(inp_pipe_dst_fmt_q[i+1],  inp_pipe_dst_fmt_q[i],  reg_ena, fpnew_pkg::fp_format_e'(0))
-    `FFL(inp_pipe_tag_q[i+1],      inp_pipe_tag_q[i],      reg_ena, TagType'('0))
-    `FFL(inp_pipe_aux_q[i+1],      inp_pipe_aux_q[i],      reg_ena, AuxType'('0))
+    `FFL(inp_pipe_tag_q[i+1],      inp_pipe_tag_q[i],      reg_ena, logic'('0))
+    `FFL(inp_pipe_aux_q[i+1],      inp_pipe_aux_q[i],      reg_ena, logic'('0))
   end
+  endgenerate
   // Output stage: assign selected pipe outputs to signals for later use
   assign operands_q = inp_pipe_operands_q[NUM_INP_REGS];
   assign rnd_mode_q = inp_pipe_rnd_mode_q[NUM_INP_REGS];
@@ -241,8 +244,8 @@ module fpnew_divsqrt_multi #(
 
   // Hold additional information while the operation is in progress
   logic result_is_fp8_q;
-  TagType result_tag_q;
-  AuxType result_aux_q;
+  logic result_tag_q;
+  logic[Auxbits-1:0] result_aux_q;
 
   // Fill the registers everytime a valid operation arrives (load FF, active low asynch rst)
   `FFL(result_is_fp8_q, input_is_fp8,                 op_starting, '0)
@@ -295,8 +298,8 @@ module fpnew_divsqrt_multi #(
   // Output pipeline signals, index i holds signal after i register stages
   logic               [0:NUM_OUT_REGS][WIDTH-1:0] out_pipe_result_q;
   fpnew_pkg::status_t [0:NUM_OUT_REGS]            out_pipe_status_q;
-  TagType             [0:NUM_OUT_REGS]            out_pipe_tag_q;
-  AuxType             [0:NUM_OUT_REGS]            out_pipe_aux_q;
+  logic             [0:NUM_OUT_REGS]            out_pipe_tag_q;
+  logic             [0:NUM_OUT_REGS][Auxbits-1:0]            out_pipe_aux_q;
   logic               [0:NUM_OUT_REGS]            out_pipe_valid_q;
   // Ready signal is combinatorial for all stages
   logic [0:NUM_OUT_REGS] out_pipe_ready;
@@ -310,7 +313,8 @@ module fpnew_divsqrt_multi #(
   // Input stage: Propagate pipeline ready signal to inside pipe
   assign out_ready = out_pipe_ready[0];
   // Generate the register stages
-  for (genvar i = 0; i < NUM_OUT_REGS; i++) begin : gen_output_pipeline
+  generate
+  for (i = 0; i < NUM_OUT_REGS; i++) begin : gen_output_pipeline
     // Internal register enable for this stage
     logic reg_ena;
     // Determine the ready signal of the current stage - advance the pipeline:
@@ -324,9 +328,10 @@ module fpnew_divsqrt_multi #(
     // Generate the pipeline registers within the stages, use enable-registers
     `FFL(out_pipe_result_q[i+1], out_pipe_result_q[i], reg_ena, '0)
     `FFL(out_pipe_status_q[i+1], out_pipe_status_q[i], reg_ena, '0)
-    `FFL(out_pipe_tag_q[i+1],    out_pipe_tag_q[i],    reg_ena, TagType'('0))
-    `FFL(out_pipe_aux_q[i+1],    out_pipe_aux_q[i],    reg_ena, AuxType'('0))
+    `FFL(out_pipe_tag_q[i+1],    out_pipe_tag_q[i],    reg_ena, logic'('0))
+    `FFL(out_pipe_aux_q[i+1],    out_pipe_aux_q[i],    reg_ena, logic'('0))
   end
+  endgenerate
   // Output stage: Ready travels backwards from output side, driven by downstream circuitry
   assign out_pipe_ready[NUM_OUT_REGS] = out_ready_i;
   // Output stage: assign module outputs

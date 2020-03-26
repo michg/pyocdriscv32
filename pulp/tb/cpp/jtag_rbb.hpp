@@ -13,7 +13,6 @@ class jtag_rbb{
     char buffer[1024] = {0};
 
 public:
-    int quit = 0;
     unsigned char   *tck_pin,
                     *tms_pin,
                     *tdi_pin,

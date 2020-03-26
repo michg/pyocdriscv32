@@ -11,19 +11,54 @@
 
 // Author: Stefan Mach <smach@iis.ee.ethz.ch>
 
+function int get_Width(input  fpnew_pkg::fpu_features_t f);    
+  get_Width = f.Width;
+endfunction
+
+function logic get_EnableVectors(input  fpnew_pkg::fpu_features_t f);    
+  get_EnableVectors = f.EnableVectors;
+endfunction
+
+function logic get_EnableNanBox(input  fpnew_pkg::fpu_features_t f);    
+  get_EnableNanBox = f.EnableNanBox;
+endfunction
+
+
+function logic[4:0] get_FpFmtMask(input  fpnew_pkg::fpu_features_t f);    
+   get_FpFmtMask= f.FpFmtMask;
+endfunction
+
+function logic[3:0] get_IntFmtMask(input  fpnew_pkg::fpu_features_t f);    
+   get_IntFmtMask= f.IntFmtMask;
+endfunction
+
+function logic [0:fpnew_pkg::NUM_OPGROUPS-1][0:fpnew_pkg::NUM_FP_FORMATS-1][31:0] get_PipeRegs(input  fpnew_pkg::fpu_implementation_t f);    
+   get_PipeRegs= f.PipeRegs;
+endfunction
+
+function logic [0:fpnew_pkg::NUM_OPGROUPS-1][0:fpnew_pkg::NUM_FP_FORMATS-1][1:0] get_UnitTypes(input  fpnew_pkg::fpu_implementation_t f);
+   get_UnitTypes = f.UnitTypes;
+endfunction
+
+function logic [1:0] get_PipeConfig(input  fpnew_pkg::fpu_implementation_t f);
+   get_PipeConfig = f.PipeConfig;
+endfunction
+
+
+
+
 module fpnew_top #(
   // FPU configuration
-  parameter fpnew_pkg::fpu_features_t       Features       = fpnew_pkg::RV64D_Xsflt,
-  parameter fpnew_pkg::fpu_implementation_t Implementation = fpnew_pkg::DEFAULT_NOREGS,
-  parameter type                            TagType        = logic,
+  parameter fpnew_pkg::fpu_features_t       Features       = fpnew_pkg::RV32F,
+  parameter fpnew_pkg::fpu_implementation_t Implementation = fpnew_pkg::DEFAULT_NOREGS
+  //parameter type                            TagType        = logic,
   // Do not change
-  localparam int unsigned WIDTH        = Features.Width,
-  localparam int unsigned NUM_OPERANDS = 3
 ) (
   input logic                               clk_i,
   input logic                               rst_ni,
   // Input signals
-  input logic [NUM_OPERANDS-1:0][WIDTH-1:0] operands_i,
+  input logic [NUM_OPERANDS-1:0][get_Width(Features)-1:0] operands_i,
+  //input logic [NUM_OPERANDS-1:0][32-1:0] operands_i,
   input fpnew_pkg::roundmode_e              rnd_mode_i,
   input fpnew_pkg::operation_e              op_i,
   input logic                               op_mod_i,
@@ -31,22 +66,44 @@ module fpnew_top #(
   input fpnew_pkg::fp_format_e              dst_fmt_i,
   input fpnew_pkg::int_format_e             int_fmt_i,
   input logic                               vectorial_op_i,
-  input TagType                             tag_i,
+  input logic                             tag_i,
   // Input Handshake
   input  logic                              in_valid_i,
   output logic                              in_ready_o,
   input  logic                              flush_i,
   // Output signals
-  output logic [WIDTH-1:0]                  result_o,
+  output logic [get_Width(Features)-1:0]                  result_o,
+  //output logic [32-1:0]                  result_o,
   output fpnew_pkg::status_t                status_o,
-  output TagType                            tag_o,
+  output logic                            tag_o,
   // Output handshake
   output logic                              out_valid_o,
   input  logic                              out_ready_i,
   // Indication of valid data in flight
   output logic                              busy_o
 );
-
+  //localparam fpnew_pkg::fpu_features_t       LFeatures       = fpnew_pkg::RV64D_Xsflt;
+    /*localparam fpnew_pkg::fpu_features_t LFeatures = '{
+            Width:         C_FLEN,
+            EnableVectors: C_XFVEC,
+            EnableNanBox:  1'b0,
+            FpFmtMask:     {C_RVF, C_RVD, C_XF16, C_XF8, C_XF16ALT},
+            IntFmtMask:    {C_XFVEC && C_XF8, C_XFVEC && (C_XF16 || C_XF16ALT), 1'b1, 1'b0}
+          }; */
+  
+  //localparam fpnew_pkg::fpu_features_t       LFeatures=con(Features);
+  localparam int unsigned WIDTH        = get_Width(Features);
+  localparam logic ENABLEVECTORS = get_EnableVectors(Features);
+  localparam logic ENABLENANBOX = get_EnableNanBox(Features);
+  localparam logic [4:0] FPFMTMASK = get_FpFmtMask(Features);
+  localparam logic [3:0] INTFMTMASK = get_IntFmtMask(Features);
+  localparam logic [0:fpnew_pkg::NUM_OPGROUPS-1][0:fpnew_pkg::NUM_FP_FORMATS-1][31:0] PIPEREGS = get_PipeRegs(Implementation);
+  localparam logic [0:fpnew_pkg::NUM_OPGROUPS-1][0:fpnew_pkg::NUM_FP_FORMATS-1][1:0] UNITTYPES = get_UnitTypes(Implementation);
+  localparam logic [1:0] PIPECONFIG = get_PipeConfig(Implementation);
+  
+  //localparam int unsigned WIDTH        = LFeatures.Width;
+  
+  localparam int unsigned NUM_OPERANDS = 3;
   localparam int unsigned NUM_OPGROUPS = fpnew_pkg::NUM_OPGROUPS;
   localparam int unsigned NUM_FORMATS  = fpnew_pkg::NUM_FP_FORMATS;
 
@@ -56,7 +113,7 @@ module fpnew_top #(
   typedef struct packed {
     logic [WIDTH-1:0]   result;
     fpnew_pkg::status_t status;
-    TagType             tag;
+    logic             tag;
   } output_t;
 
   // Handshake signals for the blocks
@@ -71,11 +128,13 @@ module fpnew_top #(
   assign in_ready_o = in_valid_i & opgrp_in_ready[fpnew_pkg::get_opgroup(op_i)];
 
   // NaN-boxing check
-  for (genvar fmt = 0; fmt < int'(NUM_FORMATS); fmt++) begin : gen_nanbox_check
+  generate
+  genvar fmt, op;
+  for (fmt = 0; fmt < int'(NUM_FORMATS); fmt++) begin : gen_nanbox_check
     localparam int unsigned FP_WIDTH = fpnew_pkg::fp_width(fpnew_pkg::fp_format_e'(fmt));
     // NaN boxing is only generated if it's enabled and needed
-    if (Features.EnableNanBox && (FP_WIDTH < WIDTH)) begin : check
-      for (genvar op = 0; op < int'(NUM_OPERANDS); op++) begin : operands
+    if (ENABLENANBOX && (FP_WIDTH < WIDTH)) begin : check
+      for (op = 0; op < int'(NUM_OPERANDS); op++) begin : operands
         assign is_boxed[fmt][op] = (!vectorial_op_i)
                                    ? operands_i[op][WIDTH-1:FP_WIDTH] == '1
                                    : 1'b1;
@@ -84,11 +143,12 @@ module fpnew_top #(
       assign is_boxed[fmt] = '1;
     end
   end
-
+  
   // -------------------------
   // Generate Operation Blocks
   // -------------------------
-  for (genvar opgrp = 0; opgrp < int'(NUM_OPGROUPS); opgrp++) begin : gen_operation_groups
+  genvar opgrp;
+  for (opgrp = 0; opgrp < int'(NUM_OPGROUPS); opgrp++) begin : gen_operation_groups
     localparam int unsigned NUM_OPS = fpnew_pkg::num_operands(fpnew_pkg::opgroup_e'(opgrp));
 
     logic in_valid;
@@ -105,13 +165,13 @@ module fpnew_top #(
     fpnew_opgroup_block #(
       .OpGroup       ( fpnew_pkg::opgroup_e'(opgrp)    ),
       .Width         ( WIDTH                           ),
-      .EnableVectors ( Features.EnableVectors          ),
-      .FpFmtMask     ( Features.FpFmtMask              ),
-      .IntFmtMask    ( Features.IntFmtMask             ),
-      .FmtPipeRegs   ( Implementation.PipeRegs[opgrp]  ),
-      .FmtUnitTypes  ( Implementation.UnitTypes[opgrp] ),
-      .PipeConfig    ( Implementation.PipeConfig       ),
-      .TagType       ( TagType                         )
+      .EnableVectors ( ENABLEVECTORS                   ),
+      .FpFmtMask     ( FPFMTMASK              ),
+      .IntFmtMask    ( INTFMTMASK            ),
+      .FmtPipeRegs   ( PIPEREGS[opgrp]  ),
+      .FmtUnitTypes  ( UNITTYPES[opgrp] ),
+      .PipeConfig    ( PIPECONFIG       )
+      //.TagType       ( TagType                         )
     ) i_opgroup_block (
       .clk_i,
       .rst_ni,
@@ -137,16 +197,17 @@ module fpnew_top #(
       .busy_o          ( opgrp_busy[opgrp]           )
     );
   end
-
+  endgenerate
   // ------------------
   // Arbitrate Outputs
   // ------------------
   output_t arbiter_output;
 
   // Round-Robin arbiter to decide which result to use
-  rr_arb_tree #(
+  rr_arb_tree_fpu #(
+    .DataWidth ($bits(output_t)),
     .NumIn     ( NUM_OPGROUPS ),
-    .DataType  ( output_t     ),
+    //.DataType  ( output_t     ),
     .AxiVldRdy ( 1'b1         )
   ) i_arbiter (
     .clk_i,

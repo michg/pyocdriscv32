@@ -61,11 +61,11 @@ module dm_mem #(
     localparam int MaxAar = (BusWidth == 64) ? 4 : 3;
     localparam DbgAddressBits = 12;
     localparam logic [DbgAddressBits-1:0] DataBase = (dm::DataAddr);
-    localparam logic [DbgAddressBits-1:0] DataEnd = (dm::DataAddr + 4*dm::DataCount);
-    localparam logic [DbgAddressBits-1:0] ProgBufBase = (dm::DataAddr - 4*dm::ProgBufSize);
-    localparam logic [DbgAddressBits-1:0] ProgBufEnd = (dm::DataAddr - 1);
-    localparam logic [DbgAddressBits-1:0] AbstractCmdBase = (ProgBufBase - 4*10);
-    localparam logic [DbgAddressBits-1:0] AbstractCmdEnd = (ProgBufBase - 1);
+    localparam logic [DbgAddressBits-1:0] DataEnd = (dm::DataAddr + {2'b0,(dm::DataCount),2'b0});
+    localparam logic [DbgAddressBits-1:0] ProgBufBase = (dm::DataAddr - {1'b0,(dm::ProgBufSize),2'b0});
+    localparam logic [DbgAddressBits-1:0] ProgBufEnd = (dm::DataAddr - 12'd1);
+    localparam logic [DbgAddressBits-1:0] AbstractCmdBase = (ProgBufBase - 12'd40);
+    localparam logic [DbgAddressBits-1:0] AbstractCmdEnd = (ProgBufBase - 12'd1);
     localparam logic [DbgAddressBits-1:0] WhereTo   = 'h300;
     localparam logic [DbgAddressBits-1:0] FlagsBase = 'h400;
     localparam logic [DbgAddressBits-1:0] FlagsEnd  = 'h7FF;
@@ -201,27 +201,30 @@ module dm_mem #(
             resuming_d[hartsel_i] = 1'b0;
         end
         // we've got a new request
+
+        `define DM_MEM_CASE_EQ(VAL) (addr_i[DbgAddressBits-1:0] == VAL)
+        `define DM_MEM_CASE_RANGE(VAL1, VAL2) ((addr_i[DbgAddressBits-1:0] >= VAL1) && (addr_i[DbgAddressBits-1:0] <= VAL2))        
         if (req_i) begin
             // this is a write
             if (we_i) begin
-                unique case (addr_i[DbgAddressBits-1:0]) inside
-                    Halted: begin
+                //unique case (addr_i[DbgAddressBits-1:0]) inside
+                    if (`DM_MEM_CASE_EQ(Halted)) begin
                         halted[hart_sel] = 1'b1;
                         halted_d[hart_sel] = 1'b1;
                     end
-                    Going: begin
+                    else if (`DM_MEM_CASE_EQ(Going)) begin
                         going = 1'b1;
                     end
-                    Resuming: begin
+                    else if (`DM_MEM_CASE_EQ(Resuming)) begin
                         // clear the halted flag as the hart resumed execution
                         halted_d[hart_sel] = 1'b0;
                         // set the resuming flag which needs to be cleared by the debugger
                         resuming_d[hart_sel] = 1'b1;
                     end
                     // an exception occurred during execution
-                    Exception: exception = 1'b1;
+                    else if (`DM_MEM_CASE_EQ(Exception)) exception = 1'b1;
                     // core can write data registers
-                    [(dm::DataAddr):DataEnd]: begin
+                    else if (`DM_MEM_CASE_RANGE(dm::DataAddr, DataEnd)) begin
                         data_valid_o = 1'b1;
                         for (int i = 0; i < $bits(be_i); i++) begin
                             if (be_i[i]) begin
@@ -229,14 +232,14 @@ module dm_mem #(
                             end
                         end
                     end
-                    default ;
-                endcase
+                    //default ;
+                //endcase
 
             // this is a read
             end else begin
-                unique case (addr_i[DbgAddressBits-1:0]) inside
+                //unique case (addr_i[DbgAddressBits-1:0]) inside
                     // variable ROM content
-                    WhereTo: begin
+                    if (`DM_MEM_CASE_EQ(WhereTo)) begin
                         // variable jump to abstract cmd, program_buffer or resume
                         if (resumereq_i[hart_sel]) begin
                             rdata_d = {32'b0, dm::jal('0, dm::ResumeAddress[11:0]-WhereTo)};
@@ -256,26 +259,26 @@ module dm_mem #(
                         end
                     end
 
-                    [DataBase:DataEnd]: begin
+                    else if (`DM_MEM_CASE_RANGE(DataBase, DataEnd)) begin
                         rdata_d = {
                                   data_i[(addr_i[DbgAddressBits-1:3] - DataBase[DbgAddressBits-1:3] + 1)],
                                   data_i[(addr_i[DbgAddressBits-1:3] - DataBase[DbgAddressBits-1:3])]
                                   };
                     end
 
-                    [ProgBufBase:ProgBufEnd]: begin
+                    else if (`DM_MEM_CASE_RANGE(ProgBufBase, ProgBufEnd)) begin
                         rdata_d = progbuf[(addr_i[DbgAddressBits-1:3] -
                                       ProgBufBase[DbgAddressBits-1:3])];
                     end
 
                     // two slots for abstract command
-                    [AbstractCmdBase:AbstractCmdEnd]: begin
+                    else if (`DM_MEM_CASE_RANGE(AbstractCmdBase, AbstractCmdEnd)) begin
                         // return the correct address index
                         rdata_d = abstract_cmd[(addr_i[DbgAddressBits-1:3] -
                                        AbstractCmdBase[DbgAddressBits-1:3])];
                     end
                     // harts are polling for flags here
-                    [FlagsBase:FlagsEnd]: begin
+                    else if (`DM_MEM_CASE_RANGE(FlagsBase, FlagsEnd)) begin
                         automatic logic [7:0][7:0] rdata;
                         rdata = '0;
                         // release the corresponding hart
@@ -285,8 +288,8 @@ module dm_mem #(
                         end
                         rdata_d = rdata;
                     end
-                    default: ;
-                endcase
+                    //default: ;
+                //endcase
             end
         end
 
@@ -455,7 +458,9 @@ module dm_mem #(
         end
     end
 
-    for (genvar k = 0; k < NrHarts; k++) begin : gen_halted
+    generate
+    genvar k;
+    for (k = 0; k < NrHarts; k++) begin : gen_halted
         always_ff @(posedge clk_i or negedge rst_ni) begin
             if (!rst_ni) begin
                 halted_q[k]   <= 1'b0;
@@ -466,5 +471,6 @@ module dm_mem #(
             end
         end
     end
+    endgenerate
 
 endmodule

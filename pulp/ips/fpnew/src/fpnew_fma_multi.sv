@@ -11,17 +11,16 @@
 
 // Author: Stefan Mach <smach@iis.ee.ethz.ch>
 
-`include "common_cells/registers.svh"
+
+
+`include "registers.svh"
 
 module fpnew_fma_multi #(
   parameter fpnew_pkg::fmt_logic_t   FpFmtConfig = '1,
   parameter int unsigned             NumPipeRegs = 0,
   parameter fpnew_pkg::pipe_config_t PipeConfig  = fpnew_pkg::BEFORE,
-  parameter type                     TagType     = logic,
-  parameter type                     AuxType     = logic,
-  // Do not change
-  localparam int unsigned WIDTH       = fpnew_pkg::max_fp_width(FpFmtConfig),
-  localparam int unsigned NUM_FORMATS = fpnew_pkg::NUM_FP_FORMATS
+  parameter int unsigned             Auxbits     = 32
+  // Do not change  
 ) (
   input  logic                        clk_i,
   input  logic                        rst_ni,
@@ -33,8 +32,8 @@ module fpnew_fma_multi #(
   input  logic                        op_mod_i,
   input  fpnew_pkg::fp_format_e       src_fmt_i, // format of the multiplicands
   input  fpnew_pkg::fp_format_e       dst_fmt_i, // format of the addend and result
-  input  TagType                      tag_i,
-  input  AuxType                      aux_i,
+  input  logic                      tag_i,
+  input  logic [Auxbits-1:0]          aux_i,
   // Input Handshake
   input  logic                        in_valid_i,
   output logic                        in_ready_o,
@@ -43,8 +42,8 @@ module fpnew_fma_multi #(
   output logic [WIDTH-1:0]            result_o,
   output fpnew_pkg::status_t          status_o,
   output logic                        extension_bit_o,
-  output TagType                      tag_o,
-  output AuxType                      aux_o,
+  output logic                      tag_o,
+  output logic [Auxbits-1:0]                      aux_o,
   // Output handshake
   output logic                        out_valid_o,
   input  logic                        out_ready_i,
@@ -56,10 +55,13 @@ module fpnew_fma_multi #(
   // Constants
   // ----------
   // The super-format that can hold all formats
+  localparam int unsigned WIDTH       = fpnew_pkg::max_fp_width(FpFmtConfig);
+  localparam int unsigned NUM_FORMATS = fpnew_pkg::NUM_FP_FORMATS;
+  
   localparam fpnew_pkg::fp_encoding_t SUPER_FORMAT = fpnew_pkg::super_format(FpFmtConfig);
 
-  localparam int unsigned SUPER_EXP_BITS = SUPER_FORMAT.exp_bits;
-  localparam int unsigned SUPER_MAN_BITS = SUPER_FORMAT.man_bits;
+  localparam int unsigned SUPER_EXP_BITS = get_exp_bits(SUPER_FORMAT);
+  localparam int unsigned SUPER_MAN_BITS = get_man_bits(SUPER_FORMAT);
 
   // Precision bits 'p' include the implicit bit
   localparam int unsigned PRECISION_BITS = SUPER_MAN_BITS + 1;
@@ -102,20 +104,20 @@ module fpnew_fma_multi #(
   // Input pipeline
   // ---------------
   // Selected pipeline output signals as non-arrays
-  logic [2:0][WIDTH-1:0] operands_q;
-  fpnew_pkg::fp_format_e src_fmt_q;
-  fpnew_pkg::fp_format_e dst_fmt_q;
+  logic  [2:0] [WIDTH-1:0] operands_q;
+  logic [fpnew_pkg::FP_FORMAT_BITS-1:0] src_fmt_q;
+  logic [fpnew_pkg::FP_FORMAT_BITS-1:0] dst_fmt_q;
 
   // Input pipeline signals, index i holds signal after i register stages
   logic                  [0:NUM_INP_REGS][2:0][WIDTH-1:0]       inp_pipe_operands_q;
   logic                  [0:NUM_INP_REGS][NUM_FORMATS-1:0][2:0] inp_pipe_is_boxed_q;
-  fpnew_pkg::roundmode_e [0:NUM_INP_REGS]                       inp_pipe_rnd_mode_q;
-  fpnew_pkg::operation_e [0:NUM_INP_REGS]                       inp_pipe_op_q;
+  logic  [0:NUM_INP_REGS] [2:0]                      inp_pipe_rnd_mode_q;
+  logic  [0:NUM_INP_REGS] [fpnew_pkg::OP_BITS-1:0]                      inp_pipe_op_q;
   logic                  [0:NUM_INP_REGS]                       inp_pipe_op_mod_q;
-  fpnew_pkg::fp_format_e [0:NUM_INP_REGS]                       inp_pipe_src_fmt_q;
-  fpnew_pkg::fp_format_e [0:NUM_INP_REGS]                       inp_pipe_dst_fmt_q;
-  TagType                [0:NUM_INP_REGS]                       inp_pipe_tag_q;
-  AuxType                [0:NUM_INP_REGS]                       inp_pipe_aux_q;
+  logic  [0:NUM_INP_REGS]  [fpnew_pkg::FP_FORMAT_BITS-1:0]                     inp_pipe_src_fmt_q;
+  logic  [0:NUM_INP_REGS]  [fpnew_pkg::FP_FORMAT_BITS-1:0]                     inp_pipe_dst_fmt_q;
+  logic                [0:NUM_INP_REGS]                       inp_pipe_tag_q;
+  logic      [0:NUM_INP_REGS]  [Auxbits-1:0]                     inp_pipe_aux_q;
   logic                  [0:NUM_INP_REGS]                       inp_pipe_valid_q;
   // Ready signal is combinatorial for all stages
   logic [0:NUM_INP_REGS] inp_pipe_ready;
@@ -134,7 +136,9 @@ module fpnew_fma_multi #(
   // Input stage: Propagate pipeline ready signal to updtream circuitry
   assign in_ready_o = inp_pipe_ready[0];
   // Generate the register stages
-  for (genvar i = 0; i < NUM_INP_REGS; i++) begin : gen_input_pipeline
+  generate
+  genvar i;
+  for (i = 0; i < NUM_INP_REGS; i++) begin : gen_input_pipeline
     // Internal register enable for this stage
     logic reg_ena;
     // Determine the ready signal of the current stage - advance the pipeline:
@@ -153,9 +157,11 @@ module fpnew_fma_multi #(
     `FFL(inp_pipe_op_mod_q[i+1],   inp_pipe_op_mod_q[i],   reg_ena, '0)
     `FFL(inp_pipe_src_fmt_q[i+1],  inp_pipe_src_fmt_q[i],  reg_ena, fpnew_pkg::fp_format_e'(0))
     `FFL(inp_pipe_dst_fmt_q[i+1],  inp_pipe_dst_fmt_q[i],  reg_ena, fpnew_pkg::fp_format_e'(0))
-    `FFL(inp_pipe_tag_q[i+1],      inp_pipe_tag_q[i],      reg_ena, TagType'('0))
-    `FFL(inp_pipe_aux_q[i+1],      inp_pipe_aux_q[i],      reg_ena, AuxType'('0))
+    `FFL(inp_pipe_tag_q[i+1],      inp_pipe_tag_q[i],      reg_ena, logic'('0))
+    `FFL(inp_pipe_aux_q[i+1],      inp_pipe_aux_q[i],      reg_ena, logic'('0))
   end
+  endgenerate
+  
   // Output stage: assign selected pipe outputs to signals for later use
   assign operands_q = inp_pipe_operands_q[NUM_INP_REGS];
   assign src_fmt_q  = inp_pipe_src_fmt_q[NUM_INP_REGS];
@@ -171,7 +177,9 @@ module fpnew_fma_multi #(
   fpnew_pkg::fp_info_t [NUM_FORMATS-1:0][2:0] info_q;
 
   // FP Input initialization
-  for (genvar fmt = 0; fmt < int'(NUM_FORMATS); fmt++) begin : fmt_init_inputs
+  generate
+  genvar fmt;
+  for (fmt = 0; fmt < int'(NUM_FORMATS); fmt++) begin : fmt_init_inputs
     // Set up some constants
     localparam int unsigned FP_WIDTH = fpnew_pkg::fp_width(fpnew_pkg::fp_format_e'(fmt));
     localparam int unsigned EXP_BITS = fpnew_pkg::exp_bits(fpnew_pkg::fp_format_e'(fmt));
@@ -189,7 +197,8 @@ module fpnew_fma_multi #(
         .is_boxed_i ( inp_pipe_is_boxed_q[NUM_INP_REGS][fmt] ),
         .info_o     ( info_q[fmt]                            )
       );
-      for (genvar op = 0; op < 3; op++) begin : gen_operands
+		genvar op;
+      for (op = 0; op < 3; op++) begin : gen_operands
         assign trimmed_ops[op]       = operands_q[op][FP_WIDTH-1:0];
         assign fmt_sign[fmt][op]     = operands_q[op][FP_WIDTH-1];
         assign fmt_exponent[fmt][op] = signed'({1'b0, operands_q[op][MAN_BITS+:EXP_BITS]});
@@ -203,7 +212,8 @@ module fpnew_fma_multi #(
       assign fmt_mantissa[fmt]           = '{default: fpnew_pkg::DONT_CARE}; // format disabled
     end
   end
-
+  endgenerate
+  
   fp_t                 operand_a, operand_b, operand_c;
   fpnew_pkg::fp_info_t info_a,    info_b,    info_c;
 
@@ -236,7 +246,7 @@ module fpnew_fma_multi #(
       fpnew_pkg::FMADD:  ; // do nothing
       fpnew_pkg::FNMSUB: operand_a.sign = ~operand_a.sign; // invert sign of product
       fpnew_pkg::ADD: begin // Set multiplicand to +1
-        operand_a = '{sign: 1'b0, exponent: fpnew_pkg::bias(src_fmt_q), mantissa: '0};
+        operand_a = '{sign: 1'b0, exponent: fpnew_pkg::bias(fpnew_pkg::fp_format_e'(src_fmt_q)), mantissa: '0};
         info_a    = '{is_normal: 1'b1, is_boxed: 1'b1, default: 1'b0}; //normal, boxed value.
       end
       fpnew_pkg::MUL: begin // Set addend to -0 (for proper rounding with RDN)
@@ -282,9 +292,9 @@ module fpnew_fma_multi #(
   logic [NUM_FORMATS-1:0][WIDTH-1:0]    fmt_special_result;
   fpnew_pkg::status_t [NUM_FORMATS-1:0] fmt_special_status;
   logic [NUM_FORMATS-1:0]               fmt_result_is_special;
-
-
-  for (genvar fmt = 0; fmt < int'(NUM_FORMATS); fmt++) begin : gen_special_results
+  
+  generate  
+  for (fmt = 0; fmt < int'(NUM_FORMATS); fmt++) begin : gen_special_results
     // Set up some constants
     localparam int unsigned FP_WIDTH = fpnew_pkg::fp_width(fpnew_pkg::fp_format_e'(fmt));
     localparam int unsigned EXP_BITS = fpnew_pkg::exp_bits(fpnew_pkg::fp_format_e'(fmt));
@@ -338,7 +348,8 @@ module fpnew_fma_multi #(
       assign fmt_special_result[fmt] = '{default: fpnew_pkg::DONT_CARE};
     end
   end
-
+  endgenerate
+  
   // Detect special case from source format, I2F casts don't produce a special result
   assign result_is_special = fmt_result_is_special[dst_fmt_q]; // they're all the same
   // Signalling input NaNs raise invalid flag, otherwise no flags set
@@ -363,11 +374,11 @@ module fpnew_fma_multi #(
   assign exponent_addend = signed'(exponent_c + $signed({1'b0, ~info_c.is_normal})); // 0 as subnorm
   // Biased product exponent is the sum of encoded exponents minus the bias.
   assign exponent_product = (info_a.is_zero || info_b.is_zero) // in case the product is zero, set minimum exp.
-                            ? 2 - signed'(fpnew_pkg::bias(dst_fmt_q))
+                            ? 2 - signed'(fpnew_pkg::bias(fpnew_pkg::fp_format_e'(dst_fmt_q)))
                             : signed'(exponent_a + info_a.is_subnormal
                                       + exponent_b + info_b.is_subnormal
-                                      - 2*signed'(fpnew_pkg::bias(src_fmt_q))
-                                      + signed'(fpnew_pkg::bias(dst_fmt_q))); // rebias for dst fmt
+                                      - 2*signed'(fpnew_pkg::bias(fpnew_pkg::fp_format_e'(src_fmt_q)))
+                                      + signed'(fpnew_pkg::bias(fpnew_pkg::fp_format_e'(dst_fmt_q)))); // rebias for dst fmt
   // Exponent difference is the addend exponent minus the product exponent
   assign exponent_difference = exponent_addend - exponent_product;
   // The tentative exponent will be the larger of the product or addend exponent
@@ -466,8 +477,8 @@ module fpnew_fma_multi #(
   logic                          sticky_before_add_q;
   logic [3*PRECISION_BITS+3:0]   sum_q;
   logic                          final_sign_q;
-  fpnew_pkg::fp_format_e         dst_fmt_q2;
-  fpnew_pkg::roundmode_e         rnd_mode_q;
+  logic [fpnew_pkg::FP_FORMAT_BITS-1:0]         dst_fmt_q2;
+  logic [2:0]         rnd_mode_q;
   logic                          result_is_special_q;
   fp_t                           special_result_q;
   fpnew_pkg::status_t            special_status_q;
@@ -480,13 +491,13 @@ module fpnew_fma_multi #(
   logic                  [0:NUM_MID_REGS]                         mid_pipe_sticky_q;
   logic                  [0:NUM_MID_REGS][3*PRECISION_BITS+3:0]   mid_pipe_sum_q;
   logic                  [0:NUM_MID_REGS]                         mid_pipe_final_sign_q;
-  fpnew_pkg::roundmode_e [0:NUM_MID_REGS]                         mid_pipe_rnd_mode_q;
-  fpnew_pkg::fp_format_e [0:NUM_MID_REGS]                         mid_pipe_dst_fmt_q;
+  logic  [0:NUM_MID_REGS] [2:0]                        mid_pipe_rnd_mode_q;
+  logic  [0:NUM_MID_REGS]  [fpnew_pkg::FP_FORMAT_BITS-1:0]                       mid_pipe_dst_fmt_q;
   logic                  [0:NUM_MID_REGS]                         mid_pipe_res_is_spec_q;
   fp_t                   [0:NUM_MID_REGS]                         mid_pipe_spec_res_q;
   fpnew_pkg::status_t    [0:NUM_MID_REGS]                         mid_pipe_spec_stat_q;
-  TagType                [0:NUM_MID_REGS]                         mid_pipe_tag_q;
-  AuxType                [0:NUM_MID_REGS]                         mid_pipe_aux_q;
+  logic                [0:NUM_MID_REGS]                         mid_pipe_tag_q;
+  logic      [0:NUM_MID_REGS] [Auxbits-1:0]                         mid_pipe_aux_q;
   logic                  [0:NUM_MID_REGS]                         mid_pipe_valid_q;
   // Ready signal is combinatorial for all stages
   logic [0:NUM_MID_REGS] mid_pipe_ready;
@@ -510,9 +521,10 @@ module fpnew_fma_multi #(
   assign mid_pipe_valid_q[0]       = inp_pipe_valid_q[NUM_INP_REGS];
   // Input stage: Propagate pipeline ready signal to input pipe
   assign inp_pipe_ready[NUM_INP_REGS] = mid_pipe_ready[0];
-
+  
+  generate
   // Generate the register stages
-  for (genvar i = 0; i < NUM_MID_REGS; i++) begin : gen_inside_pipeline
+  for (i = 0; i < NUM_MID_REGS; i++) begin : gen_inside_pipeline
     // Internal register enable for this stage
     logic reg_ena;
     // Determine the ready signal of the current stage - advance the pipeline:
@@ -537,9 +549,11 @@ module fpnew_fma_multi #(
     `FFL(mid_pipe_res_is_spec_q[i+1], mid_pipe_res_is_spec_q[i], reg_ena, '0)
     `FFL(mid_pipe_spec_res_q[i+1],    mid_pipe_spec_res_q[i],    reg_ena, '0)
     `FFL(mid_pipe_spec_stat_q[i+1],   mid_pipe_spec_stat_q[i],   reg_ena, '0)
-    `FFL(mid_pipe_tag_q[i+1],         mid_pipe_tag_q[i],         reg_ena, TagType'('0))
-    `FFL(mid_pipe_aux_q[i+1],         mid_pipe_aux_q[i],         reg_ena, AuxType'('0))
+    `FFL(mid_pipe_tag_q[i+1],         mid_pipe_tag_q[i],         reg_ena, logic'('0))
+    `FFL(mid_pipe_aux_q[i+1],         mid_pipe_aux_q[i],         reg_ena, logic'('0))
   end
+  endgenerate
+  
   // Output stage: assign selected pipe outputs to signals for later use
   assign effective_subtraction_q = mid_pipe_eff_sub_q[NUM_MID_REGS];
   assign exponent_product_q      = mid_pipe_exp_prod_q[NUM_MID_REGS];
@@ -660,11 +674,12 @@ module fpnew_fma_multi #(
   logic                                     result_zero;
 
   // Classification before round. RISC-V mandates checking underflow AFTER rounding!
-  assign of_before_round = final_exponent >= 2**(fpnew_pkg::exp_bits(dst_fmt_q2))-1; // infinity exponent is all ones
+  assign of_before_round = final_exponent >= 2**(fpnew_pkg::exp_bits(fpnew_pkg::fp_format_e'(dst_fmt_q2)))-1; // infinity exponent is all ones
   assign uf_before_round = final_exponent == 0;               // exponent for subnormals capped to 0
-
+  
+  generate
   // Pack exponent and mantissa into proper rounding form
-  for (genvar fmt = 0; fmt < int'(NUM_FORMATS); fmt++) begin : gen_res_assemble
+  for (fmt = 0; fmt < int'(NUM_FORMATS); fmt++) begin : gen_res_assemble
     // Set up some constants
     localparam int unsigned EXP_BITS = fpnew_pkg::exp_bits(fpnew_pkg::fp_format_e'(fmt));
     localparam int unsigned MAN_BITS = fpnew_pkg::man_bits(fpnew_pkg::fp_format_e'(fmt));
@@ -695,7 +710,8 @@ module fpnew_fma_multi #(
       assign fmt_round_sticky_bits[fmt] = '{default: fpnew_pkg::DONT_CARE};
     end
   end
-
+  endgenerate
+  
   // Assemble result before rounding. In case of overflow, the largest normal value is set.
   assign pre_round_sign     = final_sign_q;
   assign pre_round_abs      = fmt_pre_round_abs[dst_fmt_q2];
@@ -710,7 +726,7 @@ module fpnew_fma_multi #(
     .abs_value_i             ( pre_round_abs           ),
     .sign_i                  ( pre_round_sign          ),
     .round_sticky_bits_i     ( round_sticky_bits       ),
-    .rnd_mode_i              ( rnd_mode_q              ),
+    .rnd_mode_i              ( fpnew_pkg::roundmode_e'(rnd_mode_q)              ),
     .effective_subtraction_i ( effective_subtraction_q ),
     .abs_rounded_o           ( rounded_abs             ),
     .sign_o                  ( rounded_sign            ),
@@ -718,8 +734,9 @@ module fpnew_fma_multi #(
   );
 
   logic [NUM_FORMATS-1:0][WIDTH-1:0] fmt_result;
-
-  for (genvar fmt = 0; fmt < int'(NUM_FORMATS); fmt++) begin : gen_sign_inject
+  
+  generate
+  for (fmt = 0; fmt < int'(NUM_FORMATS); fmt++) begin : gen_sign_inject
     // Set up some constants
     localparam int unsigned FP_WIDTH = fpnew_pkg::fp_width(fpnew_pkg::fp_format_e'(fmt));
     localparam int unsigned EXP_BITS = fpnew_pkg::exp_bits(fpnew_pkg::fp_format_e'(fmt));
@@ -741,7 +758,8 @@ module fpnew_fma_multi #(
       assign fmt_result[fmt]         = '{default: fpnew_pkg::DONT_CARE};
     end
   end
-
+  endgenerate
+  
   // Classification after rounding select by destination format
   assign uf_after_round = fmt_uf_after_round[dst_fmt_q2];
   assign of_after_round = fmt_of_after_round[dst_fmt_q2];
@@ -775,8 +793,8 @@ module fpnew_fma_multi #(
   // Output pipeline signals, index i holds signal after i register stages
   logic               [0:NUM_OUT_REGS][WIDTH-1:0] out_pipe_result_q;
   fpnew_pkg::status_t [0:NUM_OUT_REGS]            out_pipe_status_q;
-  TagType             [0:NUM_OUT_REGS]            out_pipe_tag_q;
-  AuxType             [0:NUM_OUT_REGS]            out_pipe_aux_q;
+  logic             [0:NUM_OUT_REGS]            out_pipe_tag_q;
+  logic             [0:NUM_OUT_REGS]  [Auxbits-1:0]          out_pipe_aux_q;
   logic               [0:NUM_OUT_REGS]            out_pipe_valid_q;
   // Ready signal is combinatorial for all stages
   logic [0:NUM_OUT_REGS] out_pipe_ready;
@@ -790,7 +808,8 @@ module fpnew_fma_multi #(
   // Input stage: Propagate pipeline ready signal to inside pipe
   assign mid_pipe_ready[NUM_MID_REGS] = out_pipe_ready[0];
   // Generate the register stages
-  for (genvar i = 0; i < NUM_OUT_REGS; i++) begin : gen_output_pipeline
+  generate
+  for (i = 0; i < NUM_OUT_REGS; i++) begin : gen_output_pipeline
     // Internal register enable for this stage
     logic reg_ena;
     // Determine the ready signal of the current stage - advance the pipeline:
@@ -804,9 +823,11 @@ module fpnew_fma_multi #(
     // Generate the pipeline registers within the stages, use enable-registers
     `FFL(out_pipe_result_q[i+1], out_pipe_result_q[i], reg_ena, '0)
     `FFL(out_pipe_status_q[i+1], out_pipe_status_q[i], reg_ena, '0)
-    `FFL(out_pipe_tag_q[i+1],    out_pipe_tag_q[i],    reg_ena, TagType'('0))
-    `FFL(out_pipe_aux_q[i+1],    out_pipe_aux_q[i],    reg_ena, AuxType'('0))
+    `FFL(out_pipe_tag_q[i+1],    out_pipe_tag_q[i],    reg_ena, logic'('0))
+    `FFL(out_pipe_aux_q[i+1],    out_pipe_aux_q[i],    reg_ena, logic'('0))
   end
+  endgenerate
+  
   // Output stage: Ready travels backwards from output side, driven by downstream circuitry
   assign out_pipe_ready[NUM_OUT_REGS] = out_ready_i;
   // Output stage: assign module outputs
@@ -817,4 +838,5 @@ module fpnew_fma_multi #(
   assign aux_o           = out_pipe_aux_q[NUM_OUT_REGS];
   assign out_valid_o     = out_pipe_valid_q[NUM_OUT_REGS];
   assign busy_o          = (| {inp_pipe_valid_q, mid_pipe_valid_q, out_pipe_valid_q});
+  
 endmodule

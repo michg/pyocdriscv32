@@ -84,7 +84,7 @@ module apb_uart_sv
         .cfg_div_i          ( {regs_q[DLM + 'd8], regs_q[DLL + 'd8]}    ),
         .cfg_parity_en_i    ( regs_q[LCR][3]                ),
         .cfg_bits_i         ( regs_q[LCR][1:0]              ),
-        // .cfg_stop_bits_i    ( regs_q[LCR][2]                ),
+        //.cfg_stop_bits_i    ( regs_q[LCR][2]                ),
         /* verilator lint_off PINCONNECTEMPTY */
         .busy_o             (                               ),
         /* lint_on */
@@ -198,6 +198,7 @@ module apb_uart_sv
         trigger_level_n = trigger_level_q;
 
         fifo_tx_valid   = 1'b0;
+		  fifo_tx_data = 8'b0;
         tx_fifo_clr_n   = 1'b0; // self clearing
         rx_fifo_clr_n   = 1'b0; // self clearing
 

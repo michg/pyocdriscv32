@@ -11,6 +11,7 @@
 
 // Author: Stefan Mach <smach@iis.ee.ethz.ch>
 
+
 module fpnew_opgroup_fmt_slice #(
   parameter fpnew_pkg::opgroup_e     OpGroup       = fpnew_pkg::ADDMUL,
   parameter fpnew_pkg::fp_format_e   FpFormat      = fpnew_pkg::fp_format_e'(0),
@@ -18,10 +19,9 @@ module fpnew_opgroup_fmt_slice #(
   parameter int unsigned             Width         = 32,
   parameter logic                    EnableVectors = 1'b1,
   parameter int unsigned             NumPipeRegs   = 0,
-  parameter fpnew_pkg::pipe_config_t PipeConfig    = fpnew_pkg::BEFORE,
-  parameter type                     TagType       = logic,
+  parameter fpnew_pkg::pipe_config_t PipeConfig    = fpnew_pkg::BEFORE
   // Do not change
-  localparam int unsigned NUM_OPERANDS = fpnew_pkg::num_operands(OpGroup)
+  
 ) (
   input logic                               clk_i,
   input logic                               rst_ni,
@@ -32,7 +32,7 @@ module fpnew_opgroup_fmt_slice #(
   input fpnew_pkg::operation_e              op_i,
   input logic                               op_mod_i,
   input logic                               vectorial_op_i,
-  input TagType                             tag_i,
+  input logic                             tag_i,
   // Input Handshake
   input  logic                              in_valid_i,
   output logic                              in_ready_o,
@@ -41,14 +41,14 @@ module fpnew_opgroup_fmt_slice #(
   output logic [Width-1:0]                  result_o,
   output fpnew_pkg::status_t                status_o,
   output logic                              extension_bit_o,
-  output TagType                            tag_o,
+  output logic                            tag_o,
   // Output handshake
   output logic                              out_valid_o,
   input  logic                              out_ready_i,
   // Indication of valid data in flight
   output logic                              busy_o
 );
-
+  localparam int unsigned NUM_OPERANDS = fpnew_pkg::num_operands(OpGroup);
   localparam int unsigned FP_WIDTH  = fpnew_pkg::fp_width(FpFormat);
   localparam int unsigned NUM_LANES = fpnew_pkg::num_lanes(Width, FpFormat, EnableVectors);
 
@@ -61,8 +61,8 @@ module fpnew_opgroup_fmt_slice #(
 
   fpnew_pkg::status_t    [NUM_LANES-1:0] lane_status;
   logic                  [NUM_LANES-1:0] lane_ext_bit; // only the first one is actually used
-  fpnew_pkg::classmask_e [NUM_LANES-1:0] lane_class_mask;
-  TagType                [NUM_LANES-1:0] lane_tags; // only the first one is actually used
+  logic  [NUM_LANES-1:0] [9:0] lane_class_mask;
+  logic                [NUM_LANES-1:0] lane_tags; // only the first one is actually used
   logic                  [NUM_LANES-1:0] lane_vectorial, lane_busy, lane_is_class; // dito
 
   logic result_is_vector, result_is_class;
@@ -76,7 +76,9 @@ module fpnew_opgroup_fmt_slice #(
   // ---------------
   // Generate Lanes
   // ---------------
-  for (genvar lane = 0; lane < int'(NUM_LANES); lane++) begin : gen_num_lanes
+  generate
+  genvar lane;
+  for (lane = 0; lane < int'(NUM_LANES); lane++) begin : gen_num_lanes
     logic [FP_WIDTH-1:0] local_result; // lane-local results
     logic                local_sign;
 
@@ -101,9 +103,9 @@ module fpnew_opgroup_fmt_slice #(
         fpnew_fma #(
           .FpFormat    ( FpFormat    ),
           .NumPipeRegs ( NumPipeRegs ),
-          .PipeConfig  ( PipeConfig  ),
-          .TagType     ( TagType     ),
-          .AuxType     ( logic       )
+          .PipeConfig  ( PipeConfig  )
+          //.TagType     ( TagType     ),
+          //.Auxtype     ( logic       )
         ) i_fma (
           .clk_i,
           .rst_ni,
@@ -162,9 +164,9 @@ module fpnew_opgroup_fmt_slice #(
         fpnew_noncomp #(
           .FpFormat   (FpFormat),
           .NumPipeRegs(NumPipeRegs),
-          .PipeConfig (PipeConfig),
-          .TagType    (TagType),
-          .AuxType    (logic)
+          .PipeConfig (PipeConfig)
+         // .TagType    (TagType),
+          //.AuxType    (logic)
         ) i_noncomp (
           .clk_i,
           .rst_ni,
@@ -273,4 +275,5 @@ module fpnew_opgroup_fmt_slice #(
       temp_status |= lane_status[i];
     status_o = temp_status;
   end
+  endgenerate
 endmodule

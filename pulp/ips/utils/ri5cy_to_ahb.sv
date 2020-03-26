@@ -42,7 +42,7 @@ module ri5cy_to_ahb # (
               WAIT_REQ  = 1,
               NEW_REQ   = 2;
 
-  logic rvalid, rvalid_en;
+  logic rvalid;
   logic [2:0] hsize;
   logic [31:0] haddr, hwdata_tmp, hwmask;
   logic error_on_transfer;
@@ -75,12 +75,14 @@ module ri5cy_to_ahb # (
   assign hsel_o = req_i;
   assign rvalid_o = rvalid;
   assign rdata_o = hrdata_i;
-
+  
+  generate
   genvar i;
-  for (i=0;i<4;i++) begin
+  for (i=0;i<4;i++) begin: block0
     assign hwmask[i*8+:8] = {8{be_i[i]}} & wdata_i[i*8+:8];
   end
-
+  endgenerate
+  
   always @ (*) begin
     if (be_i == 4'b1111 || be_i == 4'b1110) begin
       hsize = WORD;

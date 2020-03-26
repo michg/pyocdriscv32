@@ -127,8 +127,8 @@ module apb_gpio
         for (int i=0;i<8;i++)
             s_clk_en[i] = r_gpio_en[i*4] | r_gpio_en[i*4+1] | r_gpio_en[i*4+2] | r_gpio_en[i*4+3];
     end
-
-    for (genvar i = 0; i < 8; i++) begin : ff_gen
+    generate
+    for (i = 0; i < 8; i++) begin : ff_gen
         always_ff @(posedge HCLK, negedge HRESETn) begin
             if (~HRESETn) begin
                 r_gpio_sync0[(4*i) +: 4] <= 'h0;
@@ -141,7 +141,7 @@ module apb_gpio
             end
         end
     end
-
+    endgenerate
     always_ff @(posedge HCLK, negedge HRESETn) begin
         if(~HRESETn) begin
             r_gpio_inten    <=  '0;

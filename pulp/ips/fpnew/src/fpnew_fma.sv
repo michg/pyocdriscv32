@@ -11,16 +11,15 @@
 
 // Author: Stefan Mach <smach@iis.ee.ethz.ch>
 
-`include "common_cells/registers.svh"
+`include "registers.svh"
 
 module fpnew_fma #(
   parameter fpnew_pkg::fp_format_e   FpFormat    = fpnew_pkg::fp_format_e'(0),
   parameter int unsigned             NumPipeRegs = 0,
   parameter fpnew_pkg::pipe_config_t PipeConfig  = fpnew_pkg::BEFORE,
-  parameter type                     TagType     = logic,
-  parameter type                     AuxType     = logic,
+  parameter int unsigned Auxbits = 1
 
-  localparam int unsigned WIDTH = fpnew_pkg::fp_width(FpFormat) // do not change
+ 
 ) (
   input logic                      clk_i,
   input logic                      rst_ni,
@@ -30,8 +29,8 @@ module fpnew_fma #(
   input fpnew_pkg::roundmode_e     rnd_mode_i,
   input fpnew_pkg::operation_e     op_i,
   input logic                      op_mod_i,
-  input TagType                    tag_i,
-  input AuxType                    aux_i,
+  input logic                    tag_i,
+  input logic[Auxbits-1:0]                    aux_i,
   // Input Handshake
   input  logic                     in_valid_i,
   output logic                     in_ready_o,
@@ -40,15 +39,15 @@ module fpnew_fma #(
   output logic [WIDTH-1:0]         result_o,
   output fpnew_pkg::status_t       status_o,
   output logic                     extension_bit_o,
-  output TagType                   tag_o,
-  output AuxType                   aux_o,
+  output logic                   tag_o,
+  output logic[Auxbits-1:0]                   aux_o,
   // Output handshake
   output logic                     out_valid_o,
   input  logic                     out_ready_i,
   // Indication of valid data in flight
   output logic                     busy_o
 );
-
+   localparam int unsigned WIDTH = fpnew_pkg::fp_width(FpFormat); // do not change
   // ----------
   // Constants
   // ----------
@@ -98,11 +97,11 @@ module fpnew_fma #(
   // Input pipeline signals, index i holds signal after i register stages
   logic                  [0:NUM_INP_REGS][2:0][WIDTH-1:0] inp_pipe_operands_q;
   logic                  [0:NUM_INP_REGS][2:0]            inp_pipe_is_boxed_q;
-  fpnew_pkg::roundmode_e [0:NUM_INP_REGS]                 inp_pipe_rnd_mode_q;
-  fpnew_pkg::operation_e [0:NUM_INP_REGS]                 inp_pipe_op_q;
+  logic  [0:NUM_INP_REGS] [2:0]                inp_pipe_rnd_mode_q;
+  logic [0:NUM_INP_REGS]   [fpnew_pkg::OP_BITS-1:0]               inp_pipe_op_q;
   logic                  [0:NUM_INP_REGS]                 inp_pipe_op_mod_q;
-  TagType                [0:NUM_INP_REGS]                 inp_pipe_tag_q;
-  AuxType                [0:NUM_INP_REGS]                 inp_pipe_aux_q;
+  logic                [0:NUM_INP_REGS]                 inp_pipe_tag_q;
+  logic                [0:NUM_INP_REGS]   [Auxbits-1:0]              inp_pipe_aux_q;
   logic                  [0:NUM_INP_REGS]                 inp_pipe_valid_q;
   // Ready signal is combinatorial for all stages
   logic [0:NUM_INP_REGS] inp_pipe_ready;
@@ -119,7 +118,9 @@ module fpnew_fma #(
   // Input stage: Propagate pipeline ready signal to updtream circuitry
   assign in_ready_o = inp_pipe_ready[0];
   // Generate the register stages
-  for (genvar i = 0; i < NUM_INP_REGS; i++) begin : gen_input_pipeline
+  generate
+  genvar i;
+  for (i = 0; i < NUM_INP_REGS; i++) begin : gen_input_pipeline
     // Internal register enable for this stage
     logic reg_ena;
     // Determine the ready signal of the current stage - advance the pipeline:
@@ -136,10 +137,10 @@ module fpnew_fma #(
     `FFL(inp_pipe_rnd_mode_q[i+1], inp_pipe_rnd_mode_q[i], reg_ena, fpnew_pkg::RNE)
     `FFL(inp_pipe_op_q[i+1],       inp_pipe_op_q[i],       reg_ena, fpnew_pkg::FMADD)
     `FFL(inp_pipe_op_mod_q[i+1],   inp_pipe_op_mod_q[i],   reg_ena, '0)
-    `FFL(inp_pipe_tag_q[i+1],      inp_pipe_tag_q[i],      reg_ena, TagType'('0))
-    `FFL(inp_pipe_aux_q[i+1],      inp_pipe_aux_q[i],      reg_ena, AuxType'('0))
+    `FFL(inp_pipe_tag_q[i+1],      inp_pipe_tag_q[i],      reg_ena, logic'('0))
+    `FFL(inp_pipe_aux_q[i+1],      inp_pipe_aux_q[i],      reg_ena, logic'('0))
   end
-
+  endgenerate
   // -----------------
   // Input processing
   // -----------------
@@ -385,7 +386,7 @@ module fpnew_fma #(
   logic                          sticky_before_add_q;
   logic [3*PRECISION_BITS+3:0]   sum_q;
   logic                          final_sign_q;
-  fpnew_pkg::roundmode_e         rnd_mode_q;
+  logic [2:0]         rnd_mode_q;
   logic                          result_is_special_q;
   fp_t                           special_result_q;
   fpnew_pkg::status_t            special_status_q;
@@ -398,12 +399,12 @@ module fpnew_fma #(
   logic                  [0:NUM_MID_REGS]                         mid_pipe_sticky_q;
   logic                  [0:NUM_MID_REGS][3*PRECISION_BITS+3:0]   mid_pipe_sum_q;
   logic                  [0:NUM_MID_REGS]                         mid_pipe_final_sign_q;
-  fpnew_pkg::roundmode_e [0:NUM_MID_REGS]                         mid_pipe_rnd_mode_q;
+  logic  [0:NUM_MID_REGS] [2:0]                        mid_pipe_rnd_mode_q;
   logic                  [0:NUM_MID_REGS]                         mid_pipe_res_is_spec_q;
   fp_t                   [0:NUM_MID_REGS]                         mid_pipe_spec_res_q;
   fpnew_pkg::status_t    [0:NUM_MID_REGS]                         mid_pipe_spec_stat_q;
-  TagType                [0:NUM_MID_REGS]                         mid_pipe_tag_q;
-  AuxType                [0:NUM_MID_REGS]                         mid_pipe_aux_q;
+  logic                [0:NUM_MID_REGS]                         mid_pipe_tag_q;
+  logic                [0:NUM_MID_REGS]  [Auxbits-1:0]                       mid_pipe_aux_q;
   logic                  [0:NUM_MID_REGS]                         mid_pipe_valid_q;
   // Ready signal is combinatorial for all stages
   logic [0:NUM_MID_REGS] mid_pipe_ready;
@@ -428,7 +429,8 @@ module fpnew_fma #(
   assign inp_pipe_ready[NUM_INP_REGS] = mid_pipe_ready[0];
 
   // Generate the register stages
-  for (genvar i = 0; i < NUM_MID_REGS; i++) begin : gen_inside_pipeline
+  generate
+  for (i = 0; i < NUM_MID_REGS; i++) begin : gen_inside_pipeline
     // Internal register enable for this stage
     logic reg_ena;
     // Determine the ready signal of the current stage - advance the pipeline:
@@ -452,9 +454,10 @@ module fpnew_fma #(
     `FFL(mid_pipe_res_is_spec_q[i+1], mid_pipe_res_is_spec_q[i], reg_ena, '0)
     `FFL(mid_pipe_spec_res_q[i+1],    mid_pipe_spec_res_q[i],    reg_ena, '0)
     `FFL(mid_pipe_spec_stat_q[i+1],   mid_pipe_spec_stat_q[i],   reg_ena, '0)
-    `FFL(mid_pipe_tag_q[i+1],         mid_pipe_tag_q[i],         reg_ena, TagType'('0))
-    `FFL(mid_pipe_aux_q[i+1],         mid_pipe_aux_q[i],         reg_ena, AuxType'('0))
+    `FFL(mid_pipe_tag_q[i+1],         mid_pipe_tag_q[i],         reg_ena, logic'('0))
+    `FFL(mid_pipe_aux_q[i+1],         mid_pipe_aux_q[i],         reg_ena, logic'('0))
   end
+  endgenerate
   // Output stage: assign selected pipe outputs to signals for later use
   assign effective_subtraction_q = mid_pipe_eff_sub_q[NUM_MID_REGS];
   assign exponent_product_q      = mid_pipe_exp_prod_q[NUM_MID_REGS];
@@ -464,7 +467,7 @@ module fpnew_fma #(
   assign sticky_before_add_q     = mid_pipe_sticky_q[NUM_MID_REGS];
   assign sum_q                   = mid_pipe_sum_q[NUM_MID_REGS];
   assign final_sign_q            = mid_pipe_final_sign_q[NUM_MID_REGS];
-  assign rnd_mode_q              = mid_pipe_rnd_mode_q[NUM_MID_REGS];
+  assign rnd_mode_q              = '{mid_pipe_rnd_mode_q[NUM_MID_REGS]};
   assign result_is_special_q     = mid_pipe_res_is_spec_q[NUM_MID_REGS];
   assign special_result_q        = mid_pipe_spec_res_q[NUM_MID_REGS];
   assign special_status_q        = mid_pipe_spec_stat_q[NUM_MID_REGS];
@@ -589,7 +592,7 @@ module fpnew_fma #(
     .abs_value_i             ( pre_round_abs           ),
     .sign_i                  ( pre_round_sign          ),
     .round_sticky_bits_i     ( round_sticky_bits       ),
-    .rnd_mode_i              ( rnd_mode_q              ),
+    .rnd_mode_i              (  fpnew_pkg::roundmode_e'(rnd_mode_q)              ),
     .effective_subtraction_i ( effective_subtraction_q ),
     .abs_rounded_o           ( rounded_abs             ),
     .sign_o                  ( rounded_sign            ),
@@ -628,8 +631,8 @@ module fpnew_fma #(
   // Output pipeline signals, index i holds signal after i register stages
   fp_t                [0:NUM_OUT_REGS] out_pipe_result_q;
   fpnew_pkg::status_t [0:NUM_OUT_REGS] out_pipe_status_q;
-  TagType             [0:NUM_OUT_REGS] out_pipe_tag_q;
-  AuxType             [0:NUM_OUT_REGS] out_pipe_aux_q;
+  logic             [0:NUM_OUT_REGS] out_pipe_tag_q;
+  logic            [0:NUM_OUT_REGS][Auxbits-1:0]  out_pipe_aux_q;
   logic               [0:NUM_OUT_REGS] out_pipe_valid_q;
   // Ready signal is combinatorial for all stages
   logic [0:NUM_OUT_REGS] out_pipe_ready;
@@ -643,7 +646,8 @@ module fpnew_fma #(
   // Input stage: Propagate pipeline ready signal to inside pipe
   assign mid_pipe_ready[NUM_MID_REGS] = out_pipe_ready[0];
   // Generate the register stages
-  for (genvar i = 0; i < NUM_OUT_REGS; i++) begin : gen_output_pipeline
+  generate
+  for (i = 0; i < NUM_OUT_REGS; i++) begin : gen_output_pipeline
     // Internal register enable for this stage
     logic reg_ena;
     // Determine the ready signal of the current stage - advance the pipeline:
@@ -657,9 +661,10 @@ module fpnew_fma #(
     // Generate the pipeline registers within the stages, use enable-registers
     `FFL(out_pipe_result_q[i+1], out_pipe_result_q[i], reg_ena, '0)
     `FFL(out_pipe_status_q[i+1], out_pipe_status_q[i], reg_ena, '0)
-    `FFL(out_pipe_tag_q[i+1],    out_pipe_tag_q[i],    reg_ena, TagType'('0))
-    `FFL(out_pipe_aux_q[i+1],    out_pipe_aux_q[i],    reg_ena, AuxType'('0))
+    `FFL(out_pipe_tag_q[i+1],    out_pipe_tag_q[i],    reg_ena, logic'('0))
+    `FFL(out_pipe_aux_q[i+1],    out_pipe_aux_q[i],    reg_ena, logic'('0))
   end
+  endgenerate
   // Output stage: Ready travels backwards from output side, driven by downstream circuitry
   assign out_pipe_ready[NUM_OUT_REGS] = out_ready_i;
   // Output stage: assign module outputs

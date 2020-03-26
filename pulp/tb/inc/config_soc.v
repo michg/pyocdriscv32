@@ -10,10 +10,10 @@
   `define APB_PADDR_SIZE      32 // bit-width APB address
   `define APB_PDATA_SIZE      32 // bit-width APB data
   `define APB_BASE_ADDR_ALL   32'h4000_0000
-
+  `define DRAM_KB_SIZE 32 
   `define DRAM_SIZE           `DRAM_KB_SIZE*1024/4
   `define AHB_DRAM_ADDR_WIDTH $clog2((`DRAM_KB_SIZE*1024/4)*4)
-
+  `define IRAM_KB_SIZE 32 
   `define IRAM_SIZE           `IRAM_KB_SIZE*1024/4
   `define AHB_IRAM_ADDR_WIDTH $clog2((`IRAM_KB_SIZE*1024/4)*4)
 
@@ -21,7 +21,7 @@
   `define USE_RI5CY
   `define USE_RI5CY_JTAG
 
-  localparam [31:0] ahb_addr [2][`AHB_SLAVES_NUM] = '{
+  localparam logic[31:0] ahb_addr [2][`AHB_SLAVES_NUM] = '{
     '{32'h1A00_0000,
       32'h1B00_0000,
       32'h1C00_0000,
@@ -36,7 +36,7 @@
       32'h400F_FFFF}
   };
 
-  localparam [31:0] apb_addr [2][`APB_SLAVES_NUM] = '{
+  localparam logic[31:0] apb_addr [2][`APB_SLAVES_NUM] = '{
     '{`APB_BASE_ADDR_ALL+32'h0000_0000,
       `APB_BASE_ADDR_ALL+32'h0001_0000,
       `APB_BASE_ADDR_ALL+32'h0002_0000,

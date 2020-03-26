@@ -42,7 +42,7 @@ module dmi_cdc (
     input  logic             core_dmi_valid_i
   );
 
-  cdc_2phase #(.T(dm::dmi_req_t)) i_cdc_req (
+  cdc_2phase #(.T_w($bits(dm::dmi_req_t))) i_cdc_req (
     .src_rst_ni  ( trst_ni          ),
     .src_clk_i   ( tck_i            ),
     .src_data_i  ( jtag_dmi_req_i   ),
@@ -56,7 +56,7 @@ module dmi_cdc (
     .dst_ready_i ( core_dmi_ready_i )
   );
 
-  cdc_2phase #(.T(dm::dmi_resp_t)) i_cdc_resp (
+  cdc_2phase #(.T_w($bits(dm::dmi_resp_t))) i_cdc_resp (
     .src_rst_ni  ( rst_ni           ),
     .src_clk_i   ( clk_i            ),
     .src_data_i  ( core_dmi_resp_i  ),

@@ -79,11 +79,11 @@ SOC_IPS				:=	ahb3lite_pkg							\
 
 # RI5CY RTLs files
 COMMON_CELLS	:=	ips/common_cells/include/common_cells/registers.svh	\
-									ips/common_cells/src/cdc_2phase.sv									\
-									ips/common_cells/src/deprecated/fifo_v2.sv					\
-									ips/common_cells/src/fifo_v3.sv											\
-									ips/common_cells/src/rstgen.sv											\
-									ips/common_cells/src/rstgen_bypass.sv
+									verilator-model/cdc_2phase.sv									\
+									verilator-model/fifo_v2.sv					\
+									verilator-model/fifo_v3.sv\
+									verilator-model/rstgen.sv											\
+									verilator-model/rstgen_bypass.sv
 
 SRC_FPNEW			:=	ips/fpnew/src/fpnew_pkg.sv 																		\
 									ips/fpnew/src/fpu_div_sqrt_mvp/hdl/defs_div_sqrt_mvp.sv 			\
@@ -105,7 +105,8 @@ SRC_FPNEW			:=	ips/fpnew/src/fpnew_pkg.sv 																		\
 									ips/fpnew/src/fpnew_divsqrt_multi.sv													\
 									ips/fpnew/src/fpnew_opgroup_multifmt_slice.sv 								\
 									ips/fpnew/src/common_cells/src/lzc.sv 												\
-									ips/fpnew/src/common_cells/src/rr_arb_tree.sv
+									ips/fpnew/src/common_cells/src/rr_arb_tree.sv \
+									ips/fpnew/src/rr_arb_tree_fpu.sv
 
 SRC_RI5CY			:=	ips/riscv/tb/dm/riscv_tb_pkg.sv								\
 									ips/riscv/tb/dm/boot_rom.sv										\
@@ -159,7 +160,7 @@ SRC_VERILOG		+=	$(SRC_FPNEW)
 SRC_VERILOG		+=	$(SRC_RI5CY)
 INC_VERILOG		:=	$(VERILATOR_TB)/inc								\
 									$(IPS_FOLDER)/riscv/rtl/include		\
-									$(IPS_FOLDER)/common_cells/include
+									$(IPS_FOLDER)/fpnew/src/common_cells/include/common_cells
 INCS_VERILOG	:=	$(addprefix +incdir+,$(INC_VERILOG))
 MACRO_VLOG		:=	IRAM_KB_SIZE=$(IRAM_KB_SIZE)			\
 									DRAM_KB_SIZE=$(DRAM_KB_SIZE)			\

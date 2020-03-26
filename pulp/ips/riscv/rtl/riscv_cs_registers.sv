@@ -26,7 +26,7 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-import riscv_defines::*;
+//import riscv_defines::*;
 
 `ifndef PULP_FPGA_EMUL
  `ifdef SYNTHESIS
@@ -46,6 +46,7 @@ module riscv_cs_registers
   parameter N_PMP_ENTRIES = 16
 )
 (
+
   // Clock and Reset
   input  logic            clk,
   input  logic            rst_n,
@@ -145,7 +146,7 @@ module riscv_cs_registers
 
   input  logic [N_EXT_CNT-1:0] ext_counters_i
 );
-
+  import riscv_defines::*;
   localparam N_APU_CNT       = (APU==1) ? 4 : 0;
   localparam N_PERF_COUNTERS = 12 + N_EXT_CNT + N_APU_CNT;
 
@@ -174,21 +175,6 @@ module riscv_cs_registers
   `define MSTATUS_MPP_BITS    12:11
   `define MSTATUS_MPRV_BITS      17
 
-  // misa
-  localparam logic [1:0] MXL = 2'd1; // M-XLEN: XLEN in M-Mode for RV32
-  localparam logic [31:0] MISA_VALUE =
-      (0                <<  0)  // A - Atomic Instructions extension
-    | (1                <<  2)  // C - Compressed extension
-    | (0                <<  3)  // D - Double precision floating-point extension
-    | (0                <<  4)  // E - RV32E base ISA
-    | (32'(FPU)         <<  5)  // F - Single precision floating-point extension
-    | (1                <<  8)  // I - RV32I/64I/128I base ISA
-    | (1                << 12)  // M - Integer Multiply/Divide extension
-    | (0                << 13)  // N - User level interrupts supported
-    | (0                << 18)  // S - Supervisor mode implemented
-    | (32'(PULP_SECURE) << 20)  // U - User mode implemented
-    | (1                << 23)  // X - Non-standard extensions present
-    | (32'(MXL)         << 30); // M-XLEN
 
   typedef struct packed {
     logic uie;
@@ -301,7 +287,7 @@ module riscv_cs_registers
 
    genvar j;
 
-
+generate
 if(PULP_SECURE==1) begin
   // read logic
   always_comb
@@ -326,9 +312,6 @@ if(PULP_SECURE==1) begin
                                   2'h0,
                                   mstatus_q.uie
                                 };
-
-      // misa: machine isa register
-      12'h301: csr_rdata_int = MISA_VALUE;
       // mtvec: machine trap-handler base address
       12'h305: csr_rdata_int = {mtvec_q, 6'h0, MTVEC_MODE};
       // mscratch: machine scratch
@@ -412,8 +395,8 @@ end else begin //PULP_SECURE == 0
                                   2'h0,
                                   mstatus_q.uie
                                 };
-      // misa: machine isa register
-      12'h301: csr_rdata_int = MISA_VALUE;
+      //misa: (no allocated ID yet)
+      12'h301: csr_rdata_int = 32'h0;
       // mtvec: machine trap-handler base address
       12'h305: csr_rdata_int = {mtvec_q, 6'h0, MTVEC_MODE};
       // mscratch: machine scratch
@@ -451,7 +434,8 @@ end else begin //PULP_SECURE == 0
     endcase
   end
 end //PULP_SECURE
-
+endgenerate
+generate
 if(PULP_SECURE==1) begin
   // write logic
   always_comb
@@ -514,7 +498,7 @@ if(PULP_SECURE==1) begin
       end
       // mepc: exception program counter
       12'h341: if (csr_we_int) begin
-        mepc_n = csr_wdata_int & ~32'b1; // force 16-bit alignment
+        mepc_n       = csr_wdata_int;
       end
       // mcause
       12'h342: if (csr_we_int) mcause_n = {csr_wdata_int[31], csr_wdata_int[4:0]};
@@ -536,15 +520,13 @@ if(PULP_SECURE==1) begin
       CSR_DPC:
                if (csr_we_int)
                begin
-                    depc_n = csr_wdata_int & ~32'b1; // force 16-bit alignment
+                    depc_n = csr_wdata_int;
                end
-
       CSR_DSCRATCH0:
                if (csr_we_int)
                begin
                     dscratch0_n = csr_wdata_int;
                end
-
       CSR_DSCRATCH1:
                if (csr_we_int)
                begin
@@ -769,7 +751,7 @@ end else begin //PULP_SECURE == 0
       end
       // mepc: exception program counter
       12'h341: if (csr_we_int) begin
-        mepc_n = csr_wdata_int & ~32'b1; // force 16-bit alignment
+        mepc_n       = csr_wdata_int;
       end
       // mcause
       12'h342: if (csr_we_int) mcause_n = {csr_wdata_int[31], csr_wdata_int[4:0]};
@@ -791,7 +773,7 @@ end else begin //PULP_SECURE == 0
       CSR_DPC:
                if (csr_we_int)
                begin
-                    depc_n = csr_wdata_int & ~32'b1; // force 16-bit alignment
+                    depc_n = csr_wdata_int;
                end
 
       CSR_DSCRATCH0:
@@ -851,15 +833,17 @@ end else begin //PULP_SECURE == 0
       end //csr_restore_mret_i
 
       csr_restore_dret_i: begin //DRET
-        // restore to the recorded privilege level
-        // TODO: prevent illegal values, see riscv-debug p.44
-        priv_lvl_n = dcsr_q.prv;
+        mstatus_n.mie  = mstatus_q.mpie;
+        priv_lvl_n     = PRIV_LVL_M;
+        mstatus_n.mpie = 1'b1;
+        mstatus_n.mpp  = PRIV_LVL_M;
       end //csr_restore_dret_i
 
       default:;
     endcase
   end
 end //PULP_SECURE
+endgenerate
 
   assign hwlp_data_o = csr_wdata_int;
 
@@ -1063,19 +1047,21 @@ end //PULP_SECURE
   assign PCCR_in[9]  = branch_i & branch_taken_i  & id_valid_q;       // nr of taken branches (conditional)
   assign PCCR_in[10] = id_valid_i & is_decoding_i & is_compressed_i;  // compressed instruction counter
   assign PCCR_in[11] = pipeline_stall_i;                              //extra cycles from elw
-
+  
+  generate
   if (APU == 1) begin
      assign PCCR_in[PERF_APU_ID  ] = apu_typeconflict_i & ~apu_dep_i;
      assign PCCR_in[PERF_APU_ID+1] = apu_contention_i;
      assign PCCR_in[PERF_APU_ID+2] = apu_dep_i & ~apu_contention_i;
      assign PCCR_in[PERF_APU_ID+3] = apu_wb_i;
   end
+  endgenerate
 
   // assign external performance counters
   generate
     genvar i;
     for(i = 0; i < N_EXT_CNT; i++)
-    begin
+    begin: block0
       assign PCCR_in[PERF_EXT_ID + i] = ext_counters_i[i];
     end
   endgenerate
@@ -1093,15 +1079,15 @@ end //PULP_SECURE
     // only perform csr access if we actually care about the read data
     if (csr_access_i) begin
       unique case (csr_addr_i)
-        PCER_USER, PCER_MACHINE: begin
+        PerfCounterEventReg: begin
           is_pcer = 1'b1;
           perf_rdata[N_PERF_COUNTERS-1:0] = PCER_q;
         end
-        PCMR_USER, PCMR_MACHINE: begin
+        PerfCounterModeReg: begin
           is_pcmr = 1'b1;
           perf_rdata[1:0] = PCMR_q;
         end
-        12'h79F: begin // last pccr register selects all
+        12'h79F: begin
           is_pccr = 1'b1;
           pccr_all_sel = 1'b1;
         end

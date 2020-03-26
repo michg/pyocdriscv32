@@ -166,15 +166,16 @@ module riscv_apu_disp (
   //
   // There is a dependency if the register is equal to one of the instructions
   generate
-    for (genvar i = 0; i < 3; i++) begin
+  genvar i;
+    for (i = 0; i < 3; i++) begin: block1
       assign read_deps_req[i]      = (read_regs_i[i] == addr_req)      & read_regs_valid_i[i];
       assign read_deps_inflight[i] = (read_regs_i[i] == addr_inflight) & read_regs_valid_i[i];
       assign read_deps_waiting[i]  = (read_regs_i[i] == addr_waiting)  & read_regs_valid_i[i];
     end
   endgenerate
 
-  generate
-    for (genvar i = 0; i < 2; i++) begin
+  generate  
+	 for (i = 0; i < 2; i++) begin: block2
       assign write_deps_req[i]      = (write_regs_i[i] == addr_req)      & write_regs_valid_i[i];
       assign write_deps_inflight[i] = (write_regs_i[i] == addr_inflight) & write_regs_valid_i[i];
       assign write_deps_waiting[i]  = (write_regs_i[i] == addr_waiting)  & write_regs_valid_i[i];

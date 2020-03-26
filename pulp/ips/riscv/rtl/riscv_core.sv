@@ -29,23 +29,23 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-import apu_core_package::*;
+
 
 `include "riscv_config.sv"
 
-import riscv_defines::*;
+
 
 module riscv_core
 #(
   parameter N_EXT_PERF_COUNTERS =  0,
   parameter INSTR_RDATA_WIDTH   = 32,
-  parameter PULP_SECURE         =  0,
+  parameter PULP_SECURE         =  1,
   parameter N_PMP_ENTRIES       = 16,
   parameter USE_PMP             =  1, //if PULP_SECURE is 1, you can still not use the PMP
-  parameter PULP_CLUSTER        =  1,
-  parameter FPU                 =  0,
+  parameter PULP_CLUSTER        =  0,
+  parameter FPU                 =  1,
   parameter Zfinx               =  0,
-  parameter FP_DIVSQRT          =  0,
+  parameter FP_DIVSQRT          =  1,
   parameter SHARED_FP           =  0,
   parameter SHARED_DSP_MULT     =  0,
   parameter SHARED_INT_DIV      =  0,
@@ -123,7 +123,9 @@ module riscv_core
 
   input  logic [N_EXT_PERF_COUNTERS-1:0] ext_perf_counters_i
 );
-
+  import riscv_defines::*;
+  import apu_core_package::*;
+  
   localparam N_HWLP      = 2;
   localparam N_HWLP_BITS = $clog2(N_HWLP);
   localparam APU         = ((SHARED_DSP_MULT==1) | (SHARED_INT_DIV==1) | (FPU==1)) ? 1 : 0;

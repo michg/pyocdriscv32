@@ -41,7 +41,7 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-import defs_div_sqrt_mvp::*;
+
 
 module norm_div_sqrt_mvp
   (//Inputs
@@ -68,6 +68,7 @@ module norm_div_sqrt_mvp
    output logic [4:0]                           Fflags_SO //{NV,DZ,OF,UF,NX}
    );
 
+import defs_div_sqrt_mvp::*;
 
    logic                                        Sign_res_D;
 

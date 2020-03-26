@@ -154,7 +154,7 @@ module dmi_jtag #(
         // if capture_dr goes high while we are in the read state
         // or in the corresponding wait state we are not giving back a valid word
         // -> throw an error
-        if (capture_dr && state_q inside {Read, WaitReadValid}) begin
+        if (capture_dr && ((state_q == Read) || (state_q == WaitReadValid))) begin
             error_dmi_busy = 1'b1;
         end
 

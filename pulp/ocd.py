@@ -53,16 +53,18 @@ class PulpOCD:
         self._engine.write_dr(BitSequence(value = ((adr&0xffff)<<34)| 
         ((data&0xffffffff)<<2)|(2), length = 41))
         self._engine.go_idle()
-        self._engine.write_tms(BitSequence(value=0 ,length=10))
+        for i in range(2):
+            self._engine.write_tms(BitSequence(value=0 ,length=5))
     
     def readapb(self, adr):
         self._engine.write_ir(BitSequence(value = 0x11, length=self._irlen))
         self._engine.write_dr(BitSequence(value = ((adr&0xffff)<<34)|(1),
          length = 41))
         self._engine.go_idle()
-        self._engine.write_tms(BitSequence(value=0 ,length=10))
+        for i in range(3):
+            self._engine.write_tms(BitSequence(value=0 ,length=7))
         val = int(self._engine.read_dr(41))
-        val = (val>>2) & 0xffffffff
+        val = (val>>2) & 0xffffffff        
         return val
     
     def pushins(self, ins, pos=0, last=False): 
@@ -89,6 +91,8 @@ class PulpOCD:
         self.writeapb(PulpOCD.ABSTRACTCMDREG, debugregnr + PulpOCD.WORDSIZE + 
         (1<<PulpOCD.REGTRANSFERBIT))
         self._engine.go_idle()
+        for i in range(9):
+            self._engine.write_tms(BitSequence(value=0 ,length=7))  
         val = self.readapb(PulpOCD.ABSTRACTDATAREG)  
         return val 
     
@@ -104,7 +108,8 @@ class PulpOCD:
         self.writeapb(PulpOCD.SYSTEMBUSCONTROLREG, (WORDSIZE<<17) + (1<<PulpOCD.BUSREADONADDRBIT))
         self.writeapb(PulpOCD.SYSTEMBUSADR0, adr)
         self._engine.go_idle()
-        self._engine.write_tms(BitSequence(value=0 ,length=64)) 
+        for i in range(9):
+            self._engine.write_tms(BitSequence(value=0 ,length=7)) 
         val = self.readapb(PulpOCD.SYSTEMBUSDATA0)# & (1<<((WORDSIZE + 1)*8) - 1)
         return val
     

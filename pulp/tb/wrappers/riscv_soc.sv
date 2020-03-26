@@ -3,31 +3,53 @@
 `include "config_soc.v"
 `ifdef USE_RI5CY
   `include "config_ri5cy.v"
+  `ifdef USE_RI5CY_JTAG  // It's weird to see the import through this way but
+  import dm::*;        // once dm package declares variables with same name
+ `endif                 // as riscv_defines, we should use local scope to import (vivado complainss)
 `endif
 
 module riscv_soc
-`ifdef USE_RI5CY_JTAG  // It's weird to see the import through this way but
-  import dm::*;        // once dm package declares variables with same name
-`endif                 // as riscv_defines, we should use local scope to import (vivado complainss)
+
 #(
   parameter USE_SAME_CLOCK_CORE_PERIPH = 1
 )(
-  input   core_clk,
-  input   periph_clk,
+  //input   core_clk,
+  //input   periph_clk,
   input   reset_n,
-  input   [31:0] boot_addr_i,
-  input   fetch_enable_i,
-  output  [11:0] gpio_out,
-  input   [3:0] gpio_in,
+  input   clk_i,
+  //input   [31:0] boot_addr_i,
+  //input   fetch_enable_i,
+  //output  [11:0] gpio_out,
+  //input   [3:0] gpio_in,
   input   rx_i,
   output  tx_o,
   input   jtag_tck,
   input   jtag_tms,
   input   jtag_tdi,
-  output  jtag_tdo,
-  input   jtag_trstn
+  output  jtag_tdo
+  //input   jtag_trstn
 );
-
+  
+  logic [1:0] clkdiv;
+  
+  
+  always @ (posedge clk_i) begin
+      clkdiv <= clkdiv +2'd1;
+  end
+  
+  logic core_clk;
+  assign core_clk = clkdiv[0];
+  //assign core_clk = clk_i;
+  assign periph_clk = clkdiv[0];
+  //assign periph_clk = clk_i;
+  logic [31:0] boot_addr_i =  32'h1A000000;
+  logic fetch_enable_i;
+  assign fetch_enable_i = 1'b1;
+  logic [3:0] gpio_in;
+  assign gpio_in = 4'h0;
+  logic jtag_trstn;
+  assign jtag_trstn = reset_n;
+  
   /**********************
     AHB WIREUP SIGNALS
   **********************/
@@ -100,6 +122,9 @@ module riscv_soc
   assign HCLK = core_clk;
   assign HRESETn = reset_n;
 
+  
+  
+  
   initial begin
     $display("\n");
     $display("AHB Addresses:");
@@ -116,17 +141,17 @@ module riscv_soc
   // AHB & APB Slave addressing
   genvar n, k, j;
   generate
-    for (n=0; n < `AHB_MASTERS_NUM; n++) begin
+    for (n=0; n < `AHB_MASTERS_NUM; n++) begin:block0
       assign mst_priority[n] = 1;
     end
 
-    for (k=0; k < `AHB_SLAVES_NUM; k++) begin
+    for (k=0; k < `AHB_SLAVES_NUM; k++) begin:block1
       //  mask  -->  mask = ~(FINAL ADDRESS - BASE ADDRESS)
       assign ahb_slv_addr_base[k] = ahb_addr[0][k];
       assign ahb_slv_addr_mask[k] = ~(ahb_addr[1][k]-ahb_addr[0][k]);
     end
 
-    for (j=0; j < `APB_SLAVES_NUM; j++) begin
+    for (j=0; j < `APB_SLAVES_NUM; j++) begin:block2
       //  mask  -->  mask = ~(FINAL ADDRESS - BASE ADDRESS)
       assign apb_slv_addr_base[j] = apb_addr[0][j];
       assign apb_slv_addr_mask[j] = ~(apb_addr[1][j]-apb_addr[0][j]);
@@ -136,7 +161,7 @@ module riscv_soc
   genvar m, s;
   generate
     for (m=0;m<`AHB_MASTERS_NUM;m++)
-      begin
+      begin:block3
         assign mst_HSEL     [m] = ahb_master[m].HSEL;
         assign mst_HADDR    [m] = ahb_master[m].HADDR;
         assign mst_HWDATA   [m] = ahb_master[m].HWDATA;
@@ -154,7 +179,7 @@ module riscv_soc
       end
 
     for (s=0;s<`AHB_SLAVES_NUM;s++)
-      begin
+      begin:block4
         assign ahb_slave[s].HSEL      = slv_HSEL     [s];
         assign ahb_slave[s].HADDR     = slv_HADDR    [s];
         assign ahb_slave[s].HWDATA    = slv_HWDATA   [s];
@@ -564,7 +589,7 @@ module riscv_soc
   genvar l;
   generate
     for (l=0;l<`APB_SLAVES_NUM;l++)
-      begin
+      begin:block5
         assign apb_slaves[l].PSEL = slv_apb_PSEL[l];
         assign slv_apb_PRDATA[l]  = apb_slaves[l].PRDATA;
         assign slv_apb_PREADY[l]  = apb_slaves[l].PREADY;

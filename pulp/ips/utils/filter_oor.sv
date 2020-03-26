@@ -1,5 +1,5 @@
-`include "config_soc.v"
-
+//`include "config_soc.v"
+`define AHB_SLAVES_NUM      6  // Number of slaves AHB
 module filter_oor (
   input   [31:0] addr_i,
   input   input_sel_i,
@@ -14,7 +14,7 @@ module filter_oor (
 
   genvar i;
   generate
-    for (i=0; i < `AHB_SLAVES_NUM; i++) begin
+    for (i=0; i < `AHB_SLAVES_NUM; i++) begin:block0
       assign en_addr[i] = (addr_i >= ahb_addr[0][i] && addr_i <= ahb_addr[1][i]) ? 1'b1 : 1'b0;
     end
   endgenerate

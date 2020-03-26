@@ -36,11 +36,11 @@ package fpnew_pkg;
 
   // FP formats
   typedef enum logic [FP_FORMAT_BITS-1:0] {
-    FP32    = 'd0,
-    FP64    = 'd1,
-    FP16    = 'd2,
-    FP8     = 'd3,
-    FP16ALT = 'd4
+    FP32    = {{(FP_FORMAT_BITS-3) {1'b0}}, 3'd0},
+    FP64    = {{(FP_FORMAT_BITS-3) {1'b0}}, 3'd1},
+    FP16    = {{(FP_FORMAT_BITS-3) {1'b0}}, 3'd2},
+    FP8     = {{(FP_FORMAT_BITS-3) {1'b0}}, 3'd3},
+    FP16ALT = {{(FP_FORMAT_BITS-3) {1'b0}}, 3'd4}
     // add new formats here
   } fp_format_e;
 
@@ -180,12 +180,12 @@ package fpnew_pkg;
   } unit_type_t;
 
   // Array of unit types indexed by format
-  typedef unit_type_t [0:NUM_FP_FORMATS-1] fmt_unit_types_t;
+//  typedef unit_type_t [0:NUM_FP_FORMATS-1] fmt_unit_types_t;
 
   // Array of format-specific unit types by opgroup
-  typedef fmt_unit_types_t [0:NUM_OPGROUPS-1] opgrp_fmt_unit_types_t;
+  //typedef fmt_unit_types_t [0:NUM_OPGROUPS-1] opgrp_fmt_unit_types_t;
   // same with unsigned
-  typedef fmt_unsigned_t [0:NUM_OPGROUPS-1] opgrp_fmt_unsigned_t;
+  //typedef fmt_unsigned_t [0:NUM_OPGROUPS-1] opgrp_fmt_unsigned_t;
 
   // FPU configuration: features
   typedef struct packed {
@@ -247,8 +247,8 @@ package fpnew_pkg;
 
   // FPU configuraion: implementation
   typedef struct packed {
-    opgrp_fmt_unsigned_t   PipeRegs;
-    opgrp_fmt_unit_types_t UnitTypes;
+    fmt_unsigned_t [0:NUM_OPGROUPS-1] PipeRegs;
+    logic [0:NUM_OPGROUPS-1] [0:NUM_FP_FORMATS-1] [1:0] UnitTypes;
     pipe_config_t          PipeConfig;
   } fpu_implementation_t;
 
@@ -296,7 +296,8 @@ package fpnew_pkg;
 
   // Returns the widest FP format present
   function automatic int unsigned max_fp_width(fmt_logic_t cfg);
-    automatic int unsigned res = 0;
+    automatic int unsigned res;
+	res = 0;
     for (int unsigned i = 0; i < NUM_FP_FORMATS; i++)
       if (cfg[i])
         res = unsigned'(maximum(res, fp_width(fp_format_e'(i))));
@@ -305,7 +306,8 @@ package fpnew_pkg;
 
   // Returns the narrowest FP format present
   function automatic int unsigned min_fp_width(fmt_logic_t cfg);
-    automatic int unsigned res = max_fp_width(cfg);
+    automatic int unsigned res;
+	 res  = max_fp_width(cfg);
     for (int unsigned i = 0; i < NUM_FP_FORMATS; i++)
       if (cfg[i])
         res = unsigned'(minimum(res, fp_width(fp_format_e'(i))));
@@ -343,7 +345,8 @@ package fpnew_pkg;
   // -------------------------------------------
   // Returns the widest INT format present
   function automatic int unsigned max_int_width(ifmt_logic_t cfg);
-    automatic int unsigned res = 0;
+    automatic int unsigned res;
+	 res = 0;
     for (int ifmt = 0; ifmt < NUM_INT_FORMATS; ifmt++) begin
       if (cfg[ifmt]) res = maximum(res, int_width(int_format_e'(ifmt)));
     end
@@ -445,7 +448,7 @@ package fpnew_pkg;
   endfunction
 
   // Return whether any active format is set as MERGED
-  function automatic logic any_enabled_multi(fmt_unit_types_t types, fmt_logic_t cfg);
+  function automatic logic any_enabled_multi(logic [0:NUM_FP_FORMATS-1][1:0] types, fmt_logic_t cfg);
     for (int unsigned i = 0; i < NUM_FP_FORMATS; i++)
       if (cfg[i] && types[i] == MERGED)
         return 1'b1;
@@ -454,7 +457,7 @@ package fpnew_pkg;
 
   // Return whether the given format is the first active one set as MERGED
   function automatic logic is_first_enabled_multi(fp_format_e fmt,
-                                                  fmt_unit_types_t types,
+                                                  logic [0:NUM_FP_FORMATS-1][1:0] types,
                                                   fmt_logic_t cfg);
     for (int unsigned i = 0; i < NUM_FP_FORMATS; i++) begin
       if (cfg[i] && types[i] == MERGED) return (fp_format_e'(i) == fmt);
@@ -463,7 +466,7 @@ package fpnew_pkg;
   endfunction
 
   // Returns the first format that is active and is set as MERGED
-  function automatic fp_format_e get_first_enabled_multi(fmt_unit_types_t types, fmt_logic_t cfg);
+  function automatic fp_format_e get_first_enabled_multi(logic [0:NUM_FP_FORMATS-1][1:0] types, fmt_logic_t cfg);
     for (int unsigned i = 0; i < NUM_FP_FORMATS; i++)
       if (cfg[i] && types[i] == MERGED)
         return fp_format_e'(i);

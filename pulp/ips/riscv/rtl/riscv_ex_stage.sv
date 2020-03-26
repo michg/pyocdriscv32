@@ -34,8 +34,7 @@
 
 `include "apu_macros.sv"
 
-import apu_core_package::*;
-import riscv_defines::*;
+
 
 module riscv_ex_stage
 #(
@@ -165,6 +164,9 @@ module riscv_ex_stage
   input  logic        wb_ready_i  // WB stage ready for new data
 );
 
+  import apu_core_package::*;
+  import riscv_defines::*;
+  
   logic [31:0]    alu_result;
   logic [31:0]    mult_result;
   logic           alu_cmp_result;
@@ -418,7 +420,7 @@ module riscv_ex_stage
            assign {fpu_vec_op, fpu_op_mod, fpu_op} = apu_op_i;
            assign {fpu_int_fmt, fpu_src_fmt, fpu_dst_fmt, fp_rnd_mode} = apu_flags_i;
 
-           localparam C_DIV = FP_DIVSQRT ? fpnew_pkg::MERGED : fpnew_pkg::DISABLED;
+           localparam fpnew_pkg::unit_type_t C_DIV = FP_DIVSQRT ? fpnew_pkg::MERGED : fpnew_pkg::DISABLED;
 
            logic FPU_ready_int;
 
@@ -454,8 +456,7 @@ module riscv_ex_stage
 
           fpnew_top #(
             .Features       ( FPU_FEATURES       ),
-            .Implementation ( FPU_IMPLEMENTATION ),
-            .TagType        ( logic              )
+            .Implementation ( FPU_IMPLEMENTATION )
           ) i_fpnew_bulk (
             .clk_i          ( clk                                   ),
             .rst_ni         ( rst_n                                 ),

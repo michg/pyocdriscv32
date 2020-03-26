@@ -27,8 +27,6 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-import riscv_defines::*;
-import apu_core_package::*;
 
 
 // Source/Destination register instruction index
@@ -245,6 +243,10 @@ module riscv_id_stage
     output logic        perf_pipeline_stall_o //extra cycles from elw
 );
 
+  
+  import riscv_defines::*;
+  import apu_core_package::*;
+  
   logic [31:0] instr;
 
   // Decoder/Controller ID stage internal signals
@@ -917,7 +919,8 @@ module riscv_id_stage
       assign apu_write_regs_o         = apu_write_regs;
       assign apu_write_regs_valid_o   = apu_write_regs_valid;
     end else begin
-      for (genvar i=0; i<APU_NARGS_CPU; i++) begin : apu_tie_off
+		genvar i;
+      for (i=0; i<APU_NARGS_CPU; i++) begin : apu_tie_off
         assign apu_operands[i]       = '0;
       end
       assign apu_waddr               = '0;

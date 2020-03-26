@@ -11,20 +11,19 @@
 
 // Author: Stefan Mach <smach@iis.ee.ethz.ch>
 
+
+
 module fpnew_opgroup_block #(
-  parameter fpnew_pkg::opgroup_e        OpGroup       = fpnew_pkg::ADDMUL,
+  parameter fpnew_pkg::opgroup_e        OpGroup       = fpnew_pkg::CONV,
   // FPU configuration
   parameter int unsigned                Width         = 32,
   parameter logic                       EnableVectors = 1'b1,
   parameter fpnew_pkg::fmt_logic_t      FpFmtMask     = '1,
   parameter fpnew_pkg::ifmt_logic_t     IntFmtMask    = '1,
   parameter fpnew_pkg::fmt_unsigned_t   FmtPipeRegs   = '{default: 0},
-  parameter fpnew_pkg::fmt_unit_types_t FmtUnitTypes  = '{default: fpnew_pkg::PARALLEL},
-  parameter fpnew_pkg::pipe_config_t    PipeConfig    = fpnew_pkg::BEFORE,
-  parameter type                        TagType       = logic,
-  // Do not change
-  localparam int unsigned NUM_FORMATS  = fpnew_pkg::NUM_FP_FORMATS,
-  localparam int unsigned NUM_OPERANDS = fpnew_pkg::num_operands(OpGroup)
+  parameter [0:fpnew_pkg::NUM_FP_FORMATS-1][1:0] FmtUnitTypes  = '{default: fpnew_pkg::DISABLED},
+  parameter fpnew_pkg::pipe_config_t    PipeConfig    = fpnew_pkg::BEFORE
+  // Do not change  
 ) (
   input logic                                     clk_i,
   input logic                                     rst_ni,
@@ -38,7 +37,7 @@ module fpnew_opgroup_block #(
   input fpnew_pkg::fp_format_e                    dst_fmt_i,
   input fpnew_pkg::int_format_e                   int_fmt_i,
   input logic                                     vectorial_op_i,
-  input TagType                                   tag_i,
+  input logic                                   tag_i,
   // Input Handshake
   input  logic                                    in_valid_i,
   output logic                                    in_ready_o,
@@ -47,13 +46,16 @@ module fpnew_opgroup_block #(
   output logic [Width-1:0]                        result_o,
   output fpnew_pkg::status_t                      status_o,
   output logic                                    extension_bit_o,
-  output TagType                                  tag_o,
+  output logic                                  tag_o,
   // Output handshake
   output logic                                    out_valid_o,
   input  logic                                    out_ready_i,
   // Indication of valid data in flight
   output logic                                    busy_o
 );
+
+  localparam int unsigned NUM_FORMATS  = fpnew_pkg::NUM_FP_FORMATS;
+  localparam int unsigned NUM_OPERANDS = fpnew_pkg::num_operands(OpGroup);
 
   // ----------------
   // Type Definition
@@ -62,7 +64,7 @@ module fpnew_opgroup_block #(
     logic [Width-1:0]   result;
     fpnew_pkg::status_t status;
     logic               ext_bit;
-    TagType             tag;
+    logic             tag;
   } output_t;
 
   // Handshake signals for the slices
@@ -77,7 +79,9 @@ module fpnew_opgroup_block #(
   // -------------------------
   // Generate Parallel Slices
   // -------------------------
-  for (genvar fmt = 0; fmt < int'(NUM_FORMATS); fmt++) begin : gen_parallel_slices
+  generate
+  genvar fmt;
+  for (fmt = 0; fmt < int'(NUM_FORMATS); fmt++) begin : gen_parallel_slices
     // Some constants for this format
     localparam logic ANY_MERGED = fpnew_pkg::any_enabled_multi(FmtUnitTypes, FpFmtMask);
     localparam logic IS_FIRST_MERGED =
@@ -96,8 +100,8 @@ module fpnew_opgroup_block #(
         .Width         ( Width                        ),
         .EnableVectors ( EnableVectors                ),
         .NumPipeRegs   ( FmtPipeRegs[fmt]             ),
-        .PipeConfig    ( PipeConfig                   ),
-        .TagType       ( TagType                      )
+        .PipeConfig    ( PipeConfig                   )
+        //.``TagType       ( ``TagType                      )
       ) i_fmt_slice (
         .clk_i,
         .rst_ni,
@@ -132,7 +136,7 @@ module fpnew_opgroup_block #(
       assign fmt_outputs[fmt].result  = '{default: fpnew_pkg::DONT_CARE};
       assign fmt_outputs[fmt].status  = '{default: fpnew_pkg::DONT_CARE};
       assign fmt_outputs[fmt].ext_bit = fpnew_pkg::DONT_CARE;
-      assign fmt_outputs[fmt].tag     = TagType'(fpnew_pkg::DONT_CARE);
+      assign fmt_outputs[fmt].tag     = logic'(fpnew_pkg::DONT_CARE);
 
     // Tie off disabled formats
     end else if (!FpFmtMask[fmt] || (FmtUnitTypes[fmt] == fpnew_pkg::DISABLED)) begin : disable_fmt
@@ -143,16 +147,16 @@ module fpnew_opgroup_block #(
       assign fmt_outputs[fmt].result  = '{default: fpnew_pkg::DONT_CARE};
       assign fmt_outputs[fmt].status  = '{default: fpnew_pkg::DONT_CARE};
       assign fmt_outputs[fmt].ext_bit = fpnew_pkg::DONT_CARE;
-      assign fmt_outputs[fmt].tag     = TagType'(fpnew_pkg::DONT_CARE);
+      assign fmt_outputs[fmt].tag     = logic'(fpnew_pkg::DONT_CARE);
     end
   end
-
+  
   // ----------------------
   // Generate Merged Slice
   // ----------------------
   if (fpnew_pkg::any_enabled_multi(FmtUnitTypes, FpFmtMask)) begin : gen_merged_slice
 
-    localparam FMT = fpnew_pkg::get_first_enabled_multi(FmtUnitTypes, FpFmtMask);
+    localparam fpnew_pkg::fp_format_e FMT = fpnew_pkg::get_first_enabled_multi(FmtUnitTypes, FpFmtMask);
 
     logic in_valid;
 
@@ -165,8 +169,8 @@ module fpnew_opgroup_block #(
       .IntFmtConfig  ( IntFmtMask       ),
       .EnableVectors ( EnableVectors    ),
       .NumPipeRegs   ( FmtPipeRegs[FMT] ),
-      .PipeConfig    ( PipeConfig       ),
-      .TagType       ( TagType          )
+      .PipeConfig    ( PipeConfig       )
+      //.`TagType       ( `TagType          )
     ) i_multifmt_slice (
       .clk_i,
       .rst_ni,
@@ -193,16 +197,17 @@ module fpnew_opgroup_block #(
     );
 
   end
-
+  endgenerate
   // ------------------
   // Arbitrate Outputs
   // ------------------
   output_t arbiter_output;
 
   // Round-Robin arbiter to decide which result to use
-  rr_arb_tree #(
+  rr_arb_tree_fpu #(
+	.DataWidth ($bits(output_t)),
     .NumIn     ( NUM_FORMATS ),
-    .DataType  ( output_t    ),
+    //.DataType  ( output_t    ),
     .AxiVldRdy ( 1'b1        )
   ) i_arbiter (
     .clk_i,

@@ -36,7 +36,7 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-import defs_div_sqrt_mvp::*;
+
 
 module div_sqrt_mvp_wrapper
 #(
@@ -67,7 +67,7 @@ module div_sqrt_mvp_wrapper
    output logic                           Ready_SO,
    output logic                           Done_SO
  );
-
+   import defs_div_sqrt_mvp::*;
 
    logic                                 Div_start_S_S,Sqrt_start_S_S;
    logic [C_OP_FP64-1:0]                 Operand_a_S_D;

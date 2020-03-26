@@ -97,7 +97,7 @@ module riscv_register_file
    genvar                         x;
    genvar                         y;
 
-
+	generate
    //-----------------------------------------------------------------------------
    //-- READ : Read address decoder RAD
    //-----------------------------------------------------------------------------
@@ -110,7 +110,7 @@ module riscv_register_file
       assign rdata_b_o = mem[raddr_b_i[4:0]];
       assign rdata_c_o = mem[raddr_c_i[4:0]];
    end
-
+	endgenerate
    //-----------------------------------------------------------------------------
    // WRITE : SAMPLE INPUT DATA
    //---------------------------------------------------------------------------
@@ -207,7 +207,8 @@ module riscv_register_file
                mem[k] = waddr_onehot_b_q[k] ? wdata_b_q : wdata_a_q;
           end
      end
-
+	
+	generate
    if (FPU == 1) begin
    // Floating point registers
    always_latch
@@ -221,4 +222,5 @@ module riscv_register_file
         end
       end
    end
+	endgenerate
 endmodule

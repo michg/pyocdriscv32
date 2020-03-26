@@ -32,7 +32,7 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-import defs_div_sqrt_mvp::*;
+
 
 module preprocess_mvp
   (
@@ -68,6 +68,7 @@ module preprocess_mvp
    output logic                  Special_case_dly_SBO
    );
 
+	import defs_div_sqrt_mvp::*;
    //Hidden Bits
    logic                         Hb_a_D;
    logic                         Hb_b_D;

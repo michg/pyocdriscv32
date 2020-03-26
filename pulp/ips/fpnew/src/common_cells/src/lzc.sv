@@ -53,14 +53,15 @@ module lzc #(
       in_tmp[i] = (MODE) ? in_i[WIDTH-1-i] : in_i[i];
     end
   end
-
-  for (genvar j = 0; unsigned'(j) < WIDTH; j++) begin : g_index_lut
+  generate
+  genvar j, level, k, l;
+  for (j = 0; unsigned'(j) < WIDTH; j++) begin : g_index_lut
     assign index_lut[j] = NUM_LEVELS'(unsigned'(j));
   end
 
-  for (genvar level = 0; unsigned'(level) < NUM_LEVELS; level++) begin : g_levels
+  for (level = 0; unsigned'(level) < NUM_LEVELS; level++) begin : g_levels
     if (unsigned'(level) == NUM_LEVELS-1) begin : g_last_level
-      for (genvar k = 0; k < 2**level; k++) begin : g_level
+      for (k = 0; k < 2**level; k++) begin : g_level
         // if two successive indices are still in the vector...
         if (unsigned'(k) * 2 < WIDTH-1) begin
           assign sel_nodes[2**level-1+k]   = in_tmp[k*2] | in_tmp[k*2+1];
@@ -79,14 +80,15 @@ module lzc #(
         end
       end
     end else begin
-      for (genvar l = 0; l < 2**level; l++) begin : g_level
+      for (l = 0; l < 2**level; l++) begin : g_level
         assign sel_nodes[2**level-1+l]   = sel_nodes[2**(level+1)-1+l*2] | sel_nodes[2**(level+1)-1+l*2+1];
         assign index_nodes[2**level-1+l] = (sel_nodes[2**(level+1)-1+l*2] == 1'b1) ? index_nodes[2**(level+1)-1+l*2] :
                                                                                      index_nodes[2**(level+1)-1+l*2+1];
       end
     end
   end
-
+  endgenerate
+  
   assign cnt_o   = NUM_LEVELS > unsigned'(0) ? index_nodes[0] : $clog2(WIDTH)'(0);
   assign empty_o = NUM_LEVELS > unsigned'(0) ? ~sel_nodes[0]  : ~(|in_i);
 

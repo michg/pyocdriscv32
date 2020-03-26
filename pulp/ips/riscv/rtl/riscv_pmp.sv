@@ -101,7 +101,7 @@
 
 //`define DEBUG_RULE
 
-import riscv_defines::*;
+
 
 module riscv_pmp
 #(
@@ -140,7 +140,7 @@ module riscv_pmp
    output logic [31:0]                     instr_addr_o,
    output logic                            instr_err_o
 );
-
+   import riscv_defines::*;
 
    logic [N_PMP_ENTRIES-1:0]      EN_rule;
    logic [N_PMP_ENTRIES-1:0]      R_rule;

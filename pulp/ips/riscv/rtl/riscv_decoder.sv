@@ -27,7 +27,7 @@
 
 `include "apu_macros.sv"
 
-import riscv_defines::*;
+
 
 module riscv_decoder
 #(
@@ -153,7 +153,7 @@ module riscv_decoder
   output logic [1:0]  jump_in_id_o,            // jump is being calculated in ALU
   output logic [1:0]  jump_target_mux_sel_o    // jump target selection
 );
-
+  import riscv_defines::*;
   // careful when modifying the following parameters! these types have to match the ones in the APU!
   localparam APUTYPE_DSP_MULT   = (SHARED_DSP_MULT)       ? 0 : 0;
   localparam APUTYPE_INT_MULT   = (SHARED_INT_MULT)       ? SHARED_DSP_MULT : 0;
@@ -714,7 +714,7 @@ module riscv_decoder
               fpu_src_fmt_o = fpu_dst_fmt_o;
 
               // decode vectorial FP instruction
-              unique case (instr_rdata_i[29:25]) inside
+              unique casez (instr_rdata_i[29:25])
                 // vfadd.vfmt - Vectorial FP Addition
                 5'b00001: begin
                   fpu_op      = fpnew_pkg::ADD;
@@ -807,7 +807,7 @@ module riscv_decoder
                   regb_used_o          = 1'b0;
                   scalar_replication_o = 1'b0;
                   // Decode Operation in rs2
-                  unique case (instr_rdata_i[24:20]) inside
+                  unique casez (instr_rdata_i[24:20]) 
                     // vfmv.{x.vfmt/vfmt.x} - Vectorial FP Reg <-> GP Reg Moves
                     5'b00000: begin
                       alu_op_b_mux_sel_o = OP_B_REGA_OR_FWD; // set rs2 = rs1 so we can map FMV to SGNJ in the unit
@@ -1032,8 +1032,8 @@ module riscv_decoder
 
               // check rounding mode
               if (check_fprm) begin
-                unique case (frm_i) inside
-                  [3'b000:3'b100] : ; //legal rounding modes
+                unique casez (frm_i) 
+                  3'b000, 3'b001, 3'b010, 3'b011, 3'b100 : ; //legal rounding modes
                   default         : illegal_insn_o = 1'b1;
                 endcase
               end
@@ -1369,9 +1369,14 @@ module riscv_decoder
                 apu_type_o    = APUTYPE_FP; // doesn't matter much as long as it's not div
                 check_fprm    = 1'b0; // instruction encoded in rm, do the check here
                 if (C_XF16ALT) begin  // FP16ALT instructions encoded in rm separately (static)
-                  if (!(instr_rdata_i[14:12] inside {[3'b000:3'b010], [3'b100:3'b110]})) begin
-                    illegal_insn_o = 1'b1;
-                  end
+                  //if (!(instr_rdata_i[14:12] inside {[3'b000:3'b010], [3'b100:3'b110]})) begin
+                    //illegal_insn_o = 1'b1;
+                  //end
+						casez (instr_rdata_i[14:12])
+							3'b000, 3'b001, 3'b010, 3'b100, 3'b101, 3'b110:;
+							default: illegal_insn_o = 1'b1;
+						endcase
+						
                   // FP16ALT uses special encoding here
                   if (instr_rdata_i[14]) begin
                     fpu_dst_fmt_o = fpnew_pkg::FP16ALT;
@@ -1380,7 +1385,11 @@ module riscv_decoder
                     fp_rnd_mode_o = {1'b0, instr_rdata_i[13:12]};
                   end
                 end else begin
-                  if (!(instr_rdata_i[14:12] inside {[3'b000:3'b010]})) illegal_insn_o = 1'b1;
+                  //if (!(instr_rdata_i[14:12] inside {[3'b000:3'b010]})) illegal_insn_o = 1'b1;
+						casez (instr_rdata_i[14:12])
+							3'b000, 3'b001, 3'b010:;
+							default: illegal_insn_o = 1'b1;
+						endcase
                 end
               end
             end
@@ -1405,9 +1414,13 @@ module riscv_decoder
                 apu_type_o    = APUTYPE_FP; // doesn't matter much as long as it's not div
                 check_fprm    = 1'b0; // instruction encoded in rm, do the check here
                 if (C_XF16ALT) begin  // FP16ALT instructions encoded in rm separately (static)
-                  if (!(instr_rdata_i[14:12] inside {[3'b000:3'b001], [3'b100:3'b101]})) begin
-                    illegal_insn_o = 1'b1;
-                  end
+                  //if (!(instr_rdata_i[14:12] inside {[3'b000:3'b001], [3'b100:3'b101]})) begin
+                  //  illegal_insn_o = 1'b1;
+                  //end
+						casez (instr_rdata_i[14:12])
+							3'b000, 3'b001, 3'b100, 3'b101:;
+							default: illegal_insn_o = 1'b1;
+						endcase
                   // FP16ALT uses special encoding here
                   if (instr_rdata_i[14]) begin
                     fpu_dst_fmt_o = fpnew_pkg::FP16ALT;
@@ -1416,7 +1429,11 @@ module riscv_decoder
                     fp_rnd_mode_o = {1'b0, instr_rdata_i[13:12]};
                   end
                 end else begin
-                  if (!(instr_rdata_i[14:12] inside {[3'b000:3'b001]})) illegal_insn_o = 1'b1;
+                  //if (!(instr_rdata_i[14:12] inside {[3'b000:3'b001]})) illegal_insn_o = 1'b1;
+						casez (instr_rdata_i[14:12])
+							3'b000, 3'b001:;
+							default: illegal_insn_o = 1'b1;
+						endcase
                 end
               end
             end
@@ -1510,9 +1527,13 @@ module riscv_decoder
                 apu_type_o    = APUTYPE_FP; // doesn't matter much as long as it's not div
                 check_fprm    = 1'b0; // instruction encoded in rm, do the check here
                 if (C_XF16ALT) begin  // FP16ALT instructions encoded in rm separately (static)
-                  if (!(instr_rdata_i[14:12] inside {[3'b000:3'b010], [3'b100:3'b110]})) begin
-                    illegal_insn_o = 1'b1;
-                  end
+                  //if (!(instr_rdata_i[14:12] inside {[3'b000:3'b010], [3'b100:3'b110]})) begin
+                  //  illegal_insn_o = 1'b1;
+                  //end
+						casez (instr_rdata_i[14:12])
+							3'b000, 3'b001, 3'b010, 3'b100, 3'b101, 3'b110:;
+							default: illegal_insn_o = 1'b1;
+						endcase
                   // FP16ALT uses special encoding here
                   if (instr_rdata_i[14]) begin
                     fpu_dst_fmt_o = fpnew_pkg::FP16ALT;
@@ -1521,7 +1542,11 @@ module riscv_decoder
                     fp_rnd_mode_o = {1'b0, instr_rdata_i[13:12]};
                   end
                 end else begin
-                  if (!(instr_rdata_i[14:12] inside {[3'b000:3'b010]})) illegal_insn_o = 1'b1;
+                  //if (!(instr_rdata_i[14:12] inside {[3'b000:3'b010]})) illegal_insn_o = 1'b1;
+						casez (instr_rdata_i[14:12])
+							3'b000, 3'b001, 3'b010:;
+							default: illegal_insn_o = 1'b1;
+						endcase
                 end
               end
             end
@@ -1681,20 +1706,20 @@ module riscv_decoder
 
           // check rounding mode
           if (check_fprm) begin
-            unique case (instr_rdata_i[14:12]) inside
-              [3'b000:3'b100]: ; //legal rounding modes
+            unique casez (instr_rdata_i[14:12]) 
+              3'b0??, 3'b100: ; //legal rounding modes
               3'b101: begin      // Alternative Half-Precsision encded as fmt=10 and rm=101
                 if (~C_XF16ALT || fpu_dst_fmt_o != fpnew_pkg::FP16ALT) illegal_insn_o = 1'b1;
                 // actual rounding mode from frm csr
-                unique case (frm_i) inside
-                  [3'b000:3'b100] : fp_rnd_mode_o = frm_i; //legal rounding modes
+                unique casez (frm_i) 
+                  3'b0??, 3'b100  : fp_rnd_mode_o = frm_i; //legal rounding modes
                   default         : illegal_insn_o = 1'b1;
                 endcase
               end
               3'b111: begin
                 // rounding mode from frm csr
-                unique case (frm_i) inside
-                  [3'b000:3'b100] : fp_rnd_mode_o = frm_i; //legal rounding modes
+                unique casez (frm_i)
+                  3'b0??, 3'b100  : fp_rnd_mode_o = frm_i; //legal rounding modes
                   default         : illegal_insn_o = 1'b1;
                 endcase
               end
@@ -1815,20 +1840,20 @@ module riscv_decoder
           if ((~C_XF8 || SHARED_FP==1) && fpu_dst_fmt_o == fpnew_pkg::FP8) illegal_insn_o = 1'b1;
 
           // check rounding mode
-          unique case (instr_rdata_i[14:12]) inside
-            [3'b000:3'b100]: ; //legal rounding modes
+          unique casez (instr_rdata_i[14:12])
+            3'b0??, 3'b100: ; //legal rounding modes
             3'b101: begin      // Alternative Half-Precsision encded as fmt=10 and rm=101
               if (~C_XF16ALT || fpu_dst_fmt_o != fpnew_pkg::FP16ALT) illegal_insn_o = 1'b1;
               // actual rounding mode from frm csr
-              unique case (frm_i) inside
-                [3'b000:3'b100] : fp_rnd_mode_o = frm_i; //legal rounding modes
+              unique casez (frm_i)
+                3'b0??, 3'b100 : fp_rnd_mode_o = frm_i; //legal rounding modes
                 default         : illegal_insn_o = 1'b1;
               endcase
             end
             3'b111: begin
               // rounding mode from frm csr
-              unique case (frm_i) inside
-                [3'b000:3'b100] : fp_rnd_mode_o = frm_i; //legal rounding modes
+              unique casez (frm_i)
+                3'b0??, 3'b100  : fp_rnd_mode_o = frm_i; //legal rounding modes
                 default         : illegal_insn_o = 1'b1;
               endcase
             end
@@ -2136,7 +2161,6 @@ module riscv_decoder
             alu_en_o          = 1'b0;
             mult_dot_en       = 1'b1;
             mult_dot_signed_o = 2'b00;
-            imm_b_mux_sel_o   = IMMB_VU;
             `USE_APU_DSP_MULT
           end
           6'b10001_0: begin // pv.dotusp
@@ -2157,7 +2181,6 @@ module riscv_decoder
             mult_dot_signed_o = 2'b00;
             regc_used_o       = 1'b1;
             regc_mux_o        = REGC_RD;
-            imm_b_mux_sel_o   = IMMB_VU;
             `USE_APU_DSP_MULT
           end
           6'b10101_0: begin // pv.sdotusp
