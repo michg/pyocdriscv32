@@ -132,7 +132,11 @@ SRC_RI5CY			:=	ips/riscv/tb/dm/riscv_tb_pkg.sv								\
 									ips/riscv/rtl/riscv_mult.sv                   \
 									ips/riscv/rtl/riscv_prefetch_buffer.sv        \
 									ips/riscv/rtl/riscv_prefetch_L0_buffer.sv     \
-									ips/riscv/rtl/riscv_register_file.sv          \
+									ips/mpram/riscv_register_file.sv          \
+									ips/mpram/mpram.v          \
+									ips/mpram/mpram_lvt_reg.v      \
+									ips/mpram/lvt_reg.v          \
+									ips/mpram/mrram.v          \
 									ips/riscv/rtl/riscv_core.sv                   \
 									ips/riscv/rtl/riscv_apu_disp.sv               \
 									ips/riscv/rtl/riscv_L0_buffer.sv              \
@@ -160,7 +164,8 @@ SRC_VERILOG		+=	$(SRC_FPNEW)
 SRC_VERILOG		+=	$(SRC_RI5CY)
 INC_VERILOG		:=	$(VERILATOR_TB)/inc								\
 									$(IPS_FOLDER)/riscv/rtl/include		\
-									$(IPS_FOLDER)/fpnew/src/common_cells/include/common_cells
+									$(IPS_FOLDER)/fpnew/src/common_cells/include/common_cells \
+									$(IPS_FOLDER)/mpram	
 INCS_VERILOG	:=	$(addprefix +incdir+,$(INC_VERILOG))
 MACRO_VLOG		:=	IRAM_KB_SIZE=$(IRAM_KB_SIZE)			\
 									DRAM_KB_SIZE=$(DRAM_KB_SIZE)			\

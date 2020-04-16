@@ -80,6 +80,20 @@ set_global_assignment -name VERILOG_MACRO "VERILATOR=0"
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name SYSTEMVERILOG_FILE ../ips/mpram/riscv_register_file.sv
+set_global_assignment -name VERILOG_FILE ../ips/mpram/mrram.v
+set_global_assignment -name VERILOG_FILE ../ips/mpram/mpram_xor.v
+set_global_assignment -name VERILOG_FILE ../ips/mpram/mpram_wrp.v
+set_global_assignment -name VERILOG_FILE ../ips/mpram/mpram_reg.v
+set_global_assignment -name VERILOG_FILE ../ips/mpram/mpram_lvt_reg.v
+set_global_assignment -name VERILOG_FILE ../ips/mpram/mpram_lvt_bin.v
+set_global_assignment -name VERILOG_FILE ../ips/mpram/mpram_lvt_1ht.v
+set_global_assignment -name VERILOG_FILE ../ips/mpram/mpram_gen.v
+set_global_assignment -name VERILOG_FILE ../ips/mpram/mpram.v
+set_global_assignment -name VERILOG_FILE ../ips/mpram/lvt_reg.v
+set_global_assignment -name VERILOG_FILE ../ips/mpram/lvt_bin.v
+set_global_assignment -name VERILOG_FILE ../ips/mpram/lvt_1ht.v
+set_global_assignment -name VERILOG_FILE ../ips/mpram/dpram.v
 set_global_assignment -name SDC_FILE clocks.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE ../ips/apb_uart_sv/apb_uart_sv.sv
 set_global_assignment -name SYSTEMVERILOG_FILE "../verilator-model/boot_rom.sv"
@@ -143,7 +157,6 @@ set_global_assignment -name SYSTEMVERILOG_FILE "../ips/riscv-dbg/src/dm_sba.sv"
 set_global_assignment -name SYSTEMVERILOG_FILE "../ips/riscv-dbg/src/dm_pkg.sv"
 set_global_assignment -name SYSTEMVERILOG_FILE "../ips/riscv-dbg/src/dm_mem.sv"
 set_global_assignment -name SYSTEMVERILOG_FILE "../ips/riscv-dbg/src/dm_csrs.sv"
-set_global_assignment -name SYSTEMVERILOG_FILE ../ips/riscv/rtl/riscv_register_file.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../ips/riscv/rtl/riscv_prefetch_L0_buffer.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../ips/riscv/rtl/riscv_prefetch_buffer.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../ips/riscv/rtl/riscv_pmp.sv
