@@ -449,7 +449,7 @@ module fpnew_cast_multi #(
     // Handle INT casts
     if (dst_is_int_q) begin
       // By default right shift mantissa to be an integer
-      denorm_shamt = unsigned'(MAX_INT_WIDTH - 1 - input_exp_q);
+      denorm_shamt = unsigned'(signed'(MAX_INT_WIDTH - 1) - input_exp_q); 
       // overflow: when converting to unsigned the range is larger by one
       if (input_exp_q >= signed'(fpnew_pkg::int_width(fpnew_pkg::int_format_e'(int_fmt_q2)) - 1 + op_mod_q2)) begin
         denorm_shamt    = '0; // prevent shifting
