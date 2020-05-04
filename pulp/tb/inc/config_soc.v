@@ -10,7 +10,7 @@
   `define APB_PADDR_SIZE      32 // bit-width APB address
   `define APB_PDATA_SIZE      32 // bit-width APB data
   `define APB_BASE_ADDR_ALL   32'h4000_0000
-  `define DRAM_KB_SIZE 32 
+  `define DRAM_KB_SIZE 64 
   `define DRAM_SIZE           `DRAM_KB_SIZE*1024/4
   `define AHB_DRAM_ADDR_WIDTH $clog2((`DRAM_KB_SIZE*1024/4)*4)
   `define IRAM_KB_SIZE 32 

@@ -17,7 +17,10 @@ def get_sources(folder, extension):
 
 
 with open('report.html', 'w') as f:
-    arch = get_arch('riscv')
+    archname = 'riscv'
+    if (len(argv)==4):
+        archname +=':' + argv[3]
+    arch = get_arch(archname)
     o1 = asm("sw/" + argv[1] + "/src/crt1.s", arch)
     reporter = HtmlReportGenerator(f)
     path = os.path.join('.','sw',argv[1],'src',argv[2])
@@ -30,7 +33,7 @@ with open('report.html', 'w') as f:
         coptions.add_include_path(dir)
     for src in srcs:
         with open(src) as f:
-            obj.append(cc(f, "riscv", coptions=coptions, debug=True, reporter=reporter))
+            obj.append(cc(f, archname, coptions=coptions, debug=True, reporter=reporter))
     obj = link([o1] + obj, "./sw/"+argv[1]+"/firmware.mmap", use_runtime=True, reporter=reporter, debug=True)
 
     cimg = obj.get_image('flash')
