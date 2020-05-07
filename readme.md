@@ -24,5 +24,5 @@ Finally run dbgjtag.py:
 `python3 dbgjtag.py s pulp`
 
 To use it on real hardware
-(with an [ARM-USB-TINY-H](https://www.olimex.com/Products/ARM/JTAG/ARM-USB-TINY-H/):
+(with an [ARM-USB-TINY-H](https://www.olimex.com/Products/ARM/JTAG/ARM-USB-TINY-H/)):
 `python3 dbgjtag.py h pulp`
