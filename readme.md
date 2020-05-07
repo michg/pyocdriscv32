@@ -9,15 +9,20 @@ debug port of different RISCV32 cores:
 using the API of [pyftdi](https://github.com/eblot/pyftdi).
 
 To try it in simulation [verilator](https://www.veripool.org/wiki/verilator) is needed.
-For murax do the following:
-Build the firmware murax.bin:
-`python3 mkfw.py murax hello` 
+For pulp do the following:
+Build the firmware pulp.bin:
+`python3 mkfw.py pulp floathw rvf` 
+
 Build the simulation:
-`cd murax`
-`make`
+`cd pulp`
+`make all`
 Run the simulation:
-`obj_dir/vmurax` 
+`output_verilator/riscv_soc` 
 or with tracing enabled:
-`obj_dir/vmurax vcd`
+`output_verilator/riscv_soc vcd`
 Finally run dbgjtag.py:
-`python3 dbgjtag s murax`
+`python3 dbgjtag.py s pulp`
+
+To use it on real hardware
+(with an [ARM-USB-TINY-H](https://www.olimex.com/Products/ARM/JTAG/ARM-USB-TINY-H/):
+`python3 dbgjtag.py h pulp`

@@ -87,6 +87,7 @@ reset_handler:
 
 main_entry:
   ;/* jump to main program entry point (argc = argv = 0) */  
+  csrwi frm, 2
   addi x10, x0, 0
   addi x11, x0, 0
   global main

@@ -12,7 +12,7 @@ IPS_FOLDER		:=	ips
 EN_VCD				?=	0
 # Define here the size of the RAMs once it need to check if the program fits
 IRAM_KB_SIZE	:=	32
-DRAM_KB_SIZE	:=	32
+DRAM_KB_SIZE	:=	64
 JTAG_BOOT			?=	0
 JTAG_PORT			?=	8080
 MAX_THREAD		?=	$(shell nproc --all)
@@ -196,6 +196,7 @@ VERIL_FLAGS		:=	-O3 										\
 									-Wno-CMPCONST						\
 									-Wno-MODDUP							\
 									-Wno-WIDTHCONCAT\
+									-Wno-TIMESCALEMOD\
 									--exe										\
 									--threads	$(MAX_THREAD)	\
 									--trace-depth			1000	\
