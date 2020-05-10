@@ -88,9 +88,9 @@ module riscv_register_file
      assign rdata_b_o = (raddr_b_i==0) ? 0 :  raddr_b_i[5] ? freaddata[1] : ireaddata[1];
      assign rdata_c_o = (raddr_c_i==0) ? 0 : raddr_c_i[5] ? freaddata[0] : ireaddata[0];
   end else begin
-     assign rdata_a_o = ireaddata[2];
-     assign rdata_b_o = ireaddata[1];
-     assign rdata_c_o = ireaddata[0];
+     assign rdata_a_o = (raddr_a_i==0) ? 0 : ireaddata[2];
+     assign rdata_b_o = (raddr_b_i==0) ? 0 : ireaddata[1];
+     assign rdata_c_o = (raddr_c_i==0) ? 0 : ireaddata[0];
   end
   endgenerate
  

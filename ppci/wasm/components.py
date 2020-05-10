@@ -499,7 +499,7 @@ class Module(WASMComponent):
             if c.kind == "func":
                 sig = types[c.info[0].index]
                 params_s = ", ".join([p[1] for p in sig.params])
-                result_s = ", ".join([r for r in sig.result])
+                result_s = ", ".join([r for r in sig.results])
                 print(
                     "  {}.{}:".format(c.modname, c.name).ljust(20),
                     "[{}] -> [{}]".format(params_s, result_s),
@@ -513,7 +513,7 @@ class Module(WASMComponent):
                 func = functions[c.ref.index - n_func_imports]
                 sig = types[func.ref.index]
                 params_s = ", ".join([p[1] for p in sig.params])
-                result_s = ", ".join([r for r in sig.result])
+                result_s = ", ".join([r for r in sig.results])
                 print(
                     "  {}:".format(c.name).ljust(20),
                     "[{}] -> [{}]".format(params_s, result_s),
@@ -698,7 +698,10 @@ class BlockInstruction(Instruction):
     def to_string(self):
         idtext = "" if self.id is None else " " + self.id
         a0 = self.args[0]
-        subtext = "" if a0 is "emptyblock" else " (result " + str(a0) + ")"
+        if a0 == "emptyblock":
+            subtext = ""
+        else:
+            subtext = " (result {})".format(a0)
         return "(" + self.opcode + idtext + subtext + ")"
 
 
@@ -744,18 +747,17 @@ class Type(Definition):
 
     """
 
-    __slots__ = ("id", "params", "result")
+    __slots__ = ("id", "params", "results")
 
-    def _from_args(self, id, params, result):
+    def _from_args(self, id, params, results):
         assert isinstance(id, (int, str))
         assert isinstance(params, (tuple, list))
-        assert isinstance(result, (tuple, list))
+        assert isinstance(results, (tuple, list))
         assert all(isinstance(el, tuple) and len(el) == 2 for el in params)
-        assert all(isinstance(el, str) for el in result)
+        assert all(isinstance(el, str) for el in results)
         self.id = check_id(id)
         self.params = tuple(params)
-        self.result = tuple(result)
-        assert len(self.result) <= 1  # for now
+        self.results = tuple(results)
 
     def to_string(self):
         s = "(type %s (func" % self.id
@@ -774,8 +776,8 @@ class Type(Definition):
                 s += " (param %s %s)" % (id, typ)
                 last_anon = False
         s += ")" if last_anon else ""
-        if self.result:
-            s += " (result " + " ".join(self.result) + ")"
+        if self.results:
+            s += " (result " + " ".join(self.results) + ")"
         return s + "))"
 
     def _to_writer(self, f):
@@ -783,8 +785,8 @@ class Type(Definition):
         f.write_vu32(len(self.params))  # params
         for _, paramtype in self.params:
             f.write_type(paramtype)
-        f.write_vu1(len(self.result))  # returns
-        for rettype in self.result:
+        f.write_vu1(len(self.results))  # returns
+        for rettype in self.results:
             f.write_type(rettype)
 
     def _from_reader(self, reader):
@@ -793,7 +795,7 @@ class Type(Definition):
         num_params = reader.read_uint()
         self.params = [(i, reader.read_type()) for i in range(num_params)]
         num_returns = reader.read_uint()
-        self.result = [reader.read_type() for _ in range(num_returns)]
+        self.results = [reader.read_type() for _ in range(num_returns)]
 
 
 class Import(Definition):
@@ -815,7 +817,7 @@ class Import(Definition):
     * id: the id to refer to the imported object.
     * info: a tuple who's content depends on the kind:
         * func: (ref, ) to the type (signature).
-        * table: ('anyfunc', min, max), where max can be None.
+        * table: ('funcref', min, max), where max can be None.
         * memory: (min, max), where max can be None.
         * global: (typ, mutable)
     """
@@ -836,11 +838,11 @@ class Import(Definition):
         if self.kind == "func":
             desc = ["(type %s)" % self.info[0]]
         elif self.kind == "table":
-            desc = ["anyfunc"]
+            desc = ["funcref"]
             if self.info[2] is not None:
-                desc = [str(self.info[1]), str(self.info[2]), "anyfunc"]
+                desc = [str(self.info[1]), str(self.info[2]), "funcref"]
             elif self.info[1] != 0:
-                desc = [str(self.info[1]), "anyfunc"]
+                desc = [str(self.info[1]), "funcref"]
         elif self.kind == "memory":
             desc = [self.info[0]] if self.info[1] is None else list(self.info)
         elif self.kind == "global":
@@ -868,7 +870,7 @@ class Import(Definition):
         elif self.kind == "table":
             f.write(b"\x01")
             table_kind, min, max = self.info
-            f.write_type(table_kind)  # always 0x70 anyfunc in v1
+            f.write_type(table_kind)  # always 0x70 funcref in v1
             f.write_limits(min, max)
         elif self.kind == "memory":
             f.write(b"\x02")
@@ -923,7 +925,7 @@ class Table(Definition):
     Attributes:
 
     * id: the id of this table definition in the table name/index space.
-    * kind: the kind of data stored in the table, only 'anyfunc' in v1.
+    * kind: the kind of data stored in the table, only 'funcref' in v1.
     * min: the minimum (initial) table size.
     * max: the maximum table size, or None.
 
@@ -933,7 +935,7 @@ class Table(Definition):
 
     def _from_args(self, id, kind, min, max):
         self.id = check_id(id)
-        assert kind in ("anyfunc",)  # More kinds in future versions
+        assert kind in ("funcref",)  # More kinds in future versions
         self.kind = kind
         self.min = min
         self.max = max
@@ -947,12 +949,12 @@ class Table(Definition):
         return "(table%s%s %s)" % (id, minmax, self.kind)
 
     def _to_writer(self, f):
-        f.write_type(self.kind)  # always 0x70 anyfunc in v1
+        f.write_type(self.kind)  # always 0x70 funcref in v1
         f.write_limits(self.min, self.max)
 
     def _from_reader(self, reader):
         self.kind = reader.read_type()
-        assert self.kind == "anyfunc"
+        assert self.kind == "funcref"
         self.min, self.max = reader.read_limits()
 
 

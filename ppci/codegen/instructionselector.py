@@ -63,7 +63,7 @@ from ..arch.encoding import Instruction
 from .burg import BurgSystem
 from .irdag import FunctionInfo, prepare_function_info
 from .dagsplit import DagSplitter
-from ..arch.generic_instructions import RegisterUseDef
+from ..arch.generic_instructions import RegisterUseDef, InlineAssembly
 
 
 data_types = [str(t).upper() for t in ir.all_types]
@@ -112,6 +112,7 @@ terminals = tuple(x + y for x in ops for y in data_types) + (
     "ENTRY",
     "ALLOCA",
     "FREEA",
+    "ASM",  # Inline assembly
 )
 
 
@@ -263,6 +264,7 @@ class InstructionSelector1:
 
         # Add special case nodes:
         self.sys.add_rule("stm", Tree("CALL"), 0, None, self.call_function)
+        self.sys.add_rule("stm", Tree("ASM"), 0, None, self.inline_asm)
 
         # Add all isa patterns:
         for pattern in arch.isa.patterns:
@@ -286,6 +288,15 @@ class InstructionSelector1:
         label, args, rv = tree.value
         for instruction in self.arch.gen_call(context.frame, label, args, rv):
             context.emit(instruction)
+
+    def inline_asm(self, context, tree):
+        """ Run assembler on inline assembly code. """
+        template, output_registers, input_registers, clobbers = tree.value
+        context.emit(
+            InlineAssembly(
+                template, output_registers, input_registers, clobbers
+            )
+        )
 
     def memcp(self):
         """ Invoke memcpy arch function """

@@ -19,6 +19,7 @@ def link(
     debug=False,
     extra_symbols=None,
     libraries=None,
+    entry=None,
 ):
     """ Links the iterable of objects into one using the given layout.
 
@@ -33,6 +34,7 @@ def link(
         extra_symbols: a dict of extra symbols which can be used during
             linking.
         libraries: a list of libraries to use when searching for symbols.
+        entry: the entry symbol where execution should begin.
 
     Returns:
         The linked object file
@@ -72,6 +74,7 @@ def link(
         debug=debug,
         extra_symbols=extra_symbols,
         libraries=libraries,
+        entry_symbol_name=entry,
     )
     return output_obj
 
@@ -95,6 +98,7 @@ class Linker:
         debug=False,
         extra_symbols=None,
         libraries=None,
+        entry_symbol_name=None,
     ):
         """ Link together the given object files using the layout """
         assert isinstance(input_objects, (list, tuple))
@@ -110,6 +114,19 @@ class Linker:
         self.dst = ObjectFile(self.arch)
         if debug:
             self.dst.debug_info = DebugInfo()
+
+        # Take entry symbol from layout if not specified alreay:
+        if not entry_symbol_name and layout and layout.entry:
+            # TODO: what to do if two symbols are defined?
+            # for now the symbol given via command line overrides
+            # the entry in the linker script.
+            entry_symbol_name = layout.entry.symbol_name
+
+        # Define entry symbol:
+        if entry_symbol_name:
+            self.dst.entry_symbol_id = self.inject_symbol(
+                entry_symbol_name, "global", None, None
+            ).id
 
         # Define extra symbols:
         extra_symbols = extra_symbols or {}
@@ -177,8 +194,8 @@ class Linker:
     def inject_object(self, obj, debug):
         """ Paste object into destination object. """
         self.logger.debug("Merging %s", obj)
-        section_offsets = {}
 
+        section_offsets = {}
         for input_section in obj.sections:
             # Get or create the output section:
             output_section = self.dst.get_section(
@@ -235,6 +252,16 @@ class Linker:
                 reloc.addend,
             )
             self.dst.add_relocation(new_reloc)
+
+        # Merge entry symbol:
+        if obj.entry_symbol_id is not None:
+            if self.dst.entry_symbol_id is None:
+                self.dst.entry_symbol_id = symbol_id_mapping[
+                    obj.entry_symbol_id
+                ]
+            else:
+                # TODO: improve error message?
+                raise CompilerError("Multiple entry points defined")
 
         # Merge debug info:
         if debug and obj.debug_info:
@@ -581,6 +608,11 @@ class Linker:
 
     def do_relocations(self):
         """ Perform the correct relocation as listed """
+        self.logger.debug(
+            "Performing {} linker relocations".format(
+                len(self.dst.relocations)
+            )
+        )
         for reloc in self.dst.relocations:
             self._do_relocation(reloc)
 
@@ -590,7 +622,6 @@ class Linker:
         This involves hammering some specific bits in the section data
         according to symbol location and relocation location in the file.
         """
-        self.logger.debug("Performing linker relaxation")
         sym_value = self.get_symbol_value(relocation.symbol_id)
         section = self.dst.get_section(relocation.section)
 

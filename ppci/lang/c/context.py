@@ -28,6 +28,8 @@ class CContext:
         self._enum_values = {}
         int_size = self.arch_info.get_size("int")
         int_alignment = self.arch_info.get_alignment("int")
+        long_size = max(int_size, 4)
+        long_alignment = max(int_alignment, 4)
         ptr_size = self.arch_info.get_size("ptr")
         double_size = self.arch_info.get_size(ir.f64)
         double_alignment = self.arch_info.get_alignment(ir.f64)
@@ -38,8 +40,8 @@ class CContext:
             BasicType.USHORT: (2, 2),
             BasicType.INT: (int_size, int_alignment),
             BasicType.UINT: (int_size, int_alignment),
-            BasicType.LONG: (4, 4),
-            BasicType.ULONG: (4, 4),
+            BasicType.LONG: (long_size, long_alignment),
+            BasicType.ULONG: (long_size, long_alignment),
             BasicType.LONGLONG: (8, 8),
             BasicType.ULONGLONG: (8, 8),
             BasicType.FLOAT: (4, 4),
@@ -138,11 +140,19 @@ class CContext:
         else:  # pragma: no cover
             raise NotImplementedError(str(typ))
 
-    def layout_struct(self, kind, fields):
-        """ Layout the fields in the struct """
-        offsets = {}
-        offset = 0  # Offset in bits
-        for field in fields:
+    def layout_struct(self, typ):
+        """ Layout the fields in the struct.
+
+        Things to take in account:
+        - alignment
+        - bit packing
+        - anonynous types
+        """
+        kind = "struct" if isinstance(typ, types.StructType) else "union"
+
+        bit_offsets = {}
+        bit_offset = 0  # Offset in bits
+        for field in typ.fields:
             # Calculate bit size:
             if field.bitsize:
                 bitsize = self.eval_expr(field.bitsize)
@@ -152,24 +162,35 @@ class CContext:
                 alignment = self.alignment(field.typ) * 8
 
             # alignment handling:
-            offset += required_padding(offset, alignment)
+            bit_offset += required_padding(bit_offset, alignment)
 
-            offsets[field] = offset
+            # We are now at the position of this field
+            bit_offsets[field] = bit_offset
+
+            if field.name is None:
+                # If the field is anonymous, fill the offsets of named subfields:
+                assert field.typ.is_struct_or_union
+                _, sub_field_bit_offsets = self.layout_struct(field.typ)
+                for (
+                    sub_field,
+                    sub_field_bit_offset,
+                ) in sub_field_bit_offsets.items():
+                    bit_offsets[sub_field] = bit_offset + sub_field_bit_offset
+
             if kind == "struct":
-                offset += bitsize
+                bit_offset += bitsize
 
         # TODO: should we take care here of maximum alignment as well?
         # Finally align at 8 bits:
-        offset += required_padding(offset, 8)
-        assert offset % 8 == 0
-        offset //= 8
-        return offset, offsets
+        bit_offset += required_padding(bit_offset, 8)
+        assert bit_offset % 8 == 0
+        byte_size = bit_offset // 8
+        return byte_size, bit_offsets
 
     def get_field_offsets(self, typ):
         """ Get a dictionary with offset of fields """
         if typ not in self._field_offsets:
-            kind = "struct" if isinstance(typ, types.StructType) else "union"
-            size, offsets = self.layout_struct(kind, typ.fields)
+            size, offsets = self.layout_struct(typ)
             self._field_offsets[typ] = size, offsets
         return self._field_offsets[typ]
 
@@ -183,19 +204,18 @@ class CContext:
 
     def has_field(self, typ, field_name):
         """ Check if the given type has the given field. """
-        if not isinstance(typ, types.StructOrUnionType):
+        if not typ.is_struct_or_union:
             raise TypeError("typ must be union or struct type")
 
-        return field_name in typ.get_field_names()
+        return typ.has_field(field_name)
 
     def get_field(self, typ, field_name):
         """ Get the given field. """
-        if not isinstance(typ, types.StructOrUnionType):
+        if not typ.is_struct_or_union:
             raise TypeError("typ must be union or struct type")
 
-        for field in typ.get_named_fields():
-            if field.name == field_name:
-                return field
+        if typ.has_field(field_name):
+            return typ.get_field(field_name)
         raise KeyError(field_name)
 
     def get_enum_value(self, enum_typ, enum_constant):

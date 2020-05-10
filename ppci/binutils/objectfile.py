@@ -19,6 +19,7 @@ The hierarchy is as follows:
 import json
 import binascii
 from ..common import CompilerError, make_num, get_file
+from ..utils.binary_txt import bin2asc, asc2bin
 from . import debuginfo
 
 
@@ -219,6 +220,7 @@ class ObjectFile:
         self.image_map = {}
         self.debug_info = None
         self.arch = arch
+        self.entry_symbol_id = None  # object file entry point
 
     def __repr__(self):
         return "CodeObject of {} bytes".format(self.byte_size)
@@ -368,38 +370,6 @@ def print_object(obj):
         print(image)
 
 
-def chunks(data, size=30):
-    """ Split iterable thing into n-sized chunks """
-    for i in range(0, len(data), size):
-        yield data[i : i + size]
-
-
-def bin2asc(data):
-    """ Encode binary data as ascii. If it is a large data set, then use a
-        list of hex characters.
-    """
-    if len(data) > 30:
-        res = []
-        for part in chunks(data):
-            res.append(binascii.hexlify(part).decode("ascii"))
-        return res
-    else:
-        return binascii.hexlify(data).decode("ascii")
-
-
-def asc2bin(data):
-    """ Decode ascii into binary """
-    if isinstance(data, str):
-        return bytearray(binascii.unhexlify(data.encode("ascii")))
-    elif isinstance(data, list):
-        res = bytearray()
-        for part in data:
-            res.extend(binascii.unhexlify(part.encode("ascii")))
-        return res
-    else:  # pragma: no cover
-        raise NotImplementedError(str(type(data)))
-
-
 def serialize(x):
     """ Serialize an object so it can be json-ified, or serialized """
     res = {}
@@ -424,6 +394,9 @@ def serialize(x):
             res["debug"] = debuginfo.serialize(x.debug_info)
 
         res["arch"] = x.arch.make_id_str()
+
+        if x.entry_symbol_id is not None:
+            res['entry_symbol_id'] = x.entry_symbol_id
     elif isinstance(x, Image):
         res["name"] = x.name
         res["address"] = hex(x.address)
@@ -459,6 +432,9 @@ def deserialize(data):
 
     arch = get_arch(data["arch"])
     obj = ObjectFile(arch)
+
+    if 'entry_symbol_id' in data:
+        obj.entry_symbol_id = data['entry_symbol_id']
 
     for section in data["sections"]:
         section_object = Section(section["name"])

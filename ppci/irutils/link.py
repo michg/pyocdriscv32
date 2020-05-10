@@ -1,25 +1,28 @@
-
 """ Link two ir-modules, such that external references are resolved.
-
-Example:
-
->>> import ir
->>> from ir_link import ir_link
->>> m1 = ir.Module('m1')
->>> m2 = ir.Module('m2')
->>> m3 = ir_link([m1, m2])
-
-Note that the original modules are not usable after this action.
-
-TODO: TBD: do not modify source modules?
 
 """
 
-from . import ir
-from .irutils import verify_module
+from .. import ir
+from .verify import verify_module
 
 
-def ir_link(ir_modules, name='linked') -> ir.Module:
+def ir_link(ir_modules, name="linked") -> ir.Module:
+    """ Link IR-modules into a single module.
+
+    Example:
+
+    .. doctest::
+
+        >>> from ppci import ir
+        >>> from ppci.irutils import ir_link
+        >>> m1 = ir.Module('m1')
+        >>> m2 = ir.Module('m2')
+        >>> m3 = ir_link([m1, m2])
+
+    Note that the original modules are not usable after this action.
+
+    TODO: TBD: do not modify source modules?
+    """
     mod0 = ir.Module(name)
 
     # Add all variables and functions:

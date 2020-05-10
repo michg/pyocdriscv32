@@ -3,13 +3,26 @@
 # pylint: disable=R0903
 
 
-from ...generic.nodes import Statement, Compound
+from ...generic.nodes import Node
 
 
-class CStatement(Statement):
+class CStatement(Node):
     """ Base C statement """
 
-    pass
+    def __init__(self, location):
+        self.location = location
+
+
+class Compound(CStatement):
+    """ Statement consisting of a sequence of other statements """
+
+    def __init__(self, statements, location):
+        super().__init__(location)
+        self.statements = statements
+        assert all(isinstance(s, CStatement) for s in self.statements)
+
+    def __repr__(self):
+        return "Compound"
 
 
 class If(CStatement):
@@ -101,6 +114,23 @@ class Case(CStatement):
         return "Case"
 
 
+class RangeCase(CStatement):
+    """ GNU Case statement.
+
+    For example:
+    'case 1 ... 4:'
+    """
+
+    def __init__(self, value1, value2, statement, location):
+        super().__init__(location)
+        self.value1 = value1
+        self.value2 = value2
+        self.statement = statement
+
+    def __repr__(self):
+        return "Range-Case"
+
+
 class Default(CStatement):
     """ Default statement """
 
@@ -175,4 +205,32 @@ class DeclarationStatement(CStatement):
         return "Declaration statement"
 
 
-__all__ = ["If", "Compound"]
+class InlineAssemblyCode(CStatement):
+    """ A piece of inlined assembly code """
+
+    def __init__(
+        self, template, output_operands, input_operands, clobbers, location
+    ):
+        super().__init__(location)
+        self.template = template
+        self.output_operands = output_operands
+        self.input_operands = input_operands
+        self.clobbers = clobbers
+
+    def __repr__(self):
+        return "Inline assembly"
+
+
+__all__ = [
+    "Break",
+    "Compound",
+    "Continue",
+    "Default",
+    "DoWhile",
+    "For",
+    "Goto",
+    "If",
+    "Return",
+    "Switch",
+    "While",
+]

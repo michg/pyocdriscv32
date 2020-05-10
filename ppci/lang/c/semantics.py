@@ -22,7 +22,7 @@ import logging
 from .nodes import nodes, types, declarations, statements, expressions
 from . import utils, init
 from .scope import Scope, RootScope
-from .printer import expr_to_str
+from .printer import expr_to_str, type_to_str
 
 
 class CSemantics:
@@ -65,7 +65,7 @@ class CSemantics:
         # Nice clean slate:
         assert not self.switch_stack
         self.current_function = function
-        self.scope = Scope(self.scope)
+        self.enter_scope()
 
         # Define function parameters:
         for argument in function.typ.arguments:
@@ -77,7 +77,7 @@ class CSemantics:
     def end_function(self, body):
         """ Called at the end of a function """
         # Pop scope and function
-        self.scope = self.scope.parent
+        self.leave_scope()
         function = self.current_function
         self.current_function = None
 
@@ -158,19 +158,19 @@ class CSemantics:
         if self.scope.is_definition(variable.name):
             self.error("Invalid redefinition.", variable.location)
 
+        self.patch_size_from_initializer(variable.typ, expression)
         variable.initial_value = expression
 
-        # Fill array size from elements!
-        if (
-            isinstance(variable.typ, types.ArrayType)
-            and variable.typ.size is None
-        ):
-            if isinstance(expression, expressions.InitializerList):
-                variable.typ.size = len(expression.elements)
-            # elif isinstance(expression, expressions.StringLiteral):
-            #     variable.typ.size = len(expression.value) + 1
-            else:
-                pass
+    def patch_size_from_initializer(self, typ, initializer):
+        """ Fill array size from elements! """
+
+        if typ.is_array and typ.size is None:
+            if isinstance(initializer, expressions.ArrayInitializer):
+                typ.size = len(initializer.values)
+            else:  # pragma: no cover
+                raise NotImplementedError(
+                    "What else could be used to init an array?"
+                )
 
     def new_init_cursor(self):
         return init.InitCursor(self.context)
@@ -230,21 +230,17 @@ class CSemantics:
 
     def on_field_designator(self, init_cursor, field_name, location):
         """ Check field designator. """
-        init_level = init_cursor.level
-        typ = init_level.typ
+        typ = init_cursor.level.typ
 
-        if not (typ.is_struct or typ.is_union):
+        if not typ.is_struct_or_union:
             self.error(
                 "Cannot use designator in non-struct/union type", location
             )
 
         if typ.has_field(field_name):
-            field = typ.get_field(field_name)
+            init_cursor.select_field(field_name, location)
         else:
             self.error("No such field {}".format(field_name), location)
-
-        # Determine position of field inside the structure:
-        init_level.go_to_field(field)
 
     # Declarations:
     def on_typedef(self, typ, name, modifiers, location):
@@ -394,7 +390,12 @@ class CSemantics:
         else:
             # Bit fields must be of integer type:
             if not ctyp.is_integer:
-                self.error("Invalid type for bit-field", location)
+                self.error(
+                    "Invalid type ({}) for bit-field".format(
+                        type_to_str(ctyp)
+                    ),
+                    location,
+                )
 
         field = types.Field(ctyp, name, bitsize)
         return field
@@ -458,12 +459,20 @@ class CSemantics:
     def on_label(name, statement, location):
         return statements.Label(name, statement, location)
 
-    def enter_compound_statement(self, location):
+    def enter_scope(self):
+        """ Enter a new symbol scope. """
         self.scope = Scope(self.scope)
+
+    def leave_scope(self):
+        """ Leave a symbol scope. """
+        self.scope = self.scope.parent
+
+    def enter_compound_statement(self, location):
+        self.enter_scope()
         self.compounds.append([])
 
     def on_compound_statement(self, location):
-        self.scope = self.scope.parent
+        self.leave_scope()
         inner_statements = self.compounds.pop()
         return statements.Compound(inner_statements, location)
 
@@ -489,8 +498,14 @@ class CSemantics:
         if not self.switch_stack:
             self.error("Case statement outside of a switch!", location)
 
-        value = self.coerce(value, self.switch_stack[-1])
-        return statements.Case(value, statement, location)
+        if isinstance(value, tuple):
+            value1, value2 = value
+            value1 = self.coerce(value1, self.switch_stack[-1])
+            value2 = self.coerce(value2, self.switch_stack[-1])
+            return statements.RangeCase(value1, value2, statement, location)
+        else:
+            value = self.coerce(value, self.switch_stack[-1])
+            return statements.Case(value, statement, location)
 
     def on_default(self, statement, location):
         """ Handle a default label """
@@ -529,10 +544,55 @@ class CSemantics:
                 self.error("Must return a value from this function", location)
         return statements.Return(value, location)
 
+    def on_asm(
+        self, template, output_operands, input_operands, clobbers, location
+    ):
+        output_operands2 = []
+        for constraint, asm_output_expr in output_operands:
+            assert constraint == "=r"
+
+            # Output must be l-value:
+            if not asm_output_expr.lvalue:
+                self.error("Expected lvalue", asm_output_expr.location)
+
+            output_operands2.append((constraint, asm_output_expr))
+
+        input_operands2 = []
+        for constraint, asm_input_expr in input_operands:
+            if constraint == "r":
+                asm_input_expr = self.coerce(
+                    asm_input_expr, self.get_type(["int"])
+                )
+            else:
+                raise NotImplementedError(
+                    "Inline asm constraint not implemented: {}".format(
+                        constraint
+                    )
+                )
+            input_operands2.append((constraint, asm_input_expr))
+
+        clobbers2 = []
+        for clobber_register_name in clobbers:
+            if self.context.arch_info.has_register(clobber_register_name):
+                clobber_register = self.context.arch_info.get_register(
+                    clobber_register_name
+                )
+                clobbers2.append(clobber_register)
+            else:
+                self.error(
+                    "target machine does not have register {}".format(
+                        clobber_register_name
+                    ),
+                    location,
+                )
+
+        return statements.InlineAssemblyCode(
+            template, output_operands2, input_operands2, clobbers2, location
+        )
+
     # Expressions!
     def on_string(self, value, location):
         """ React on string literal """
-        value = value[1:-1]  # Strip of " chars.
         cstr_type = types.ArrayType(self.char_type, len(value) + 1)
         return expressions.StringLiteral(value, cstr_type, location)
 
@@ -631,23 +691,15 @@ class CSemantics:
         elif op == "*":
             if not isinstance(a.typ, types.IndexableType):
                 self.error(
-                    "Cannot pointer derefence type {}".format(a.typ),
+                    "Cannot pointer derefence type {}".format(
+                        type_to_str(a.typ)
+                    ),
                     a.location,
                 )
             typ = a.typ.element_type
             expr = expressions.UnaryOperator(op, a, typ, True, location)
         elif op == "&":
-            if isinstance(a, expressions.VariableAccess) and isinstance(
-                a.variable.declaration, declarations.FunctionDeclaration
-            ):
-                # Function pointer:
-                expr = a
-            else:
-                # L-value access:
-                if not a.lvalue:
-                    self.error("Expected lvalue", a.location)
-                typ = types.PointerType(a.typ)
-                expr = expressions.UnaryOperator(op, a, typ, False, location)
+            expr = self.on_take_address(a, location)
         elif op == "!":
             a = self.coerce(a, self.int_type)
             expr = expressions.UnaryOperator(
@@ -655,6 +707,20 @@ class CSemantics:
             )
         else:  # pragma: no cover
             raise NotImplementedError(str(op))
+        return expr
+
+    def on_take_address(self, a, location):
+        if isinstance(a, expressions.VariableAccess) and isinstance(
+            a.variable.declaration, declarations.FunctionDeclaration
+        ):
+            # Function pointer:
+            expr = a
+        else:
+            # L-value access:
+            if not a.lvalue:
+                self.error("Expected lvalue", a.location)
+            typ = types.PointerType(a.typ)
+            expr = expressions.UnaryOperator("&", a, typ, False, location)
         return expr
 
     def on_sizeof(self, typ, location):
@@ -666,6 +732,12 @@ class CSemantics:
         """ Check explicit casting """
         return expressions.Cast(casted_expr, to_typ, False, location)
 
+    def on_compound_literal(self, typ, init, location):
+        """ Check the consistency of compound literals. """
+        self.patch_size_from_initializer(typ, init)
+        expr = expressions.CompoundLiteral(typ, init, location)
+        return expr
+
     def on_array_index(self, base, index, location):
         """ Check array indexing """
         index = self.coerce(index, self.int_type)
@@ -676,7 +748,8 @@ class CSemantics:
 
         if not isinstance(base.typ, types.IndexableType):
             self.error(
-                "Cannot index non array type {}".format(base.typ), location
+                "Cannot index non array type {}".format(type_to_str(base.typ)),
+                location,
             )
 
         typ = base.typ.element_type
@@ -684,12 +757,13 @@ class CSemantics:
 
     def on_field_select(self, base, field_name, location):
         """ Check field select expression """
-        if not isinstance(base.typ, types.StructOrUnionType):
+        if not base.typ.is_struct_or_union:
             # Maybe we have a pointer to a struct?
             # If so, give a hint about this.
             hints = []
-            if isinstance(base.typ, types.PointerType) and isinstance(
-                base.typ.element_type, types.StructOrUnionType
+            if (
+                isinstance(base.typ, types.PointerType)
+                and base.typ.element_type.is_struct_or_union
             ):
                 lhs = expr_to_str(base)
                 hints.append(
@@ -698,7 +772,11 @@ class CSemantics:
                     )
                 )
             self.error(
-                "Selecting a field of non-struct type", location, hints=hints
+                "Selecting a field of non-struct type ({})".format(
+                    type_to_str(base.typ)
+                ),
+                location,
+                hints=hints,
             )
 
         if not base.lvalue:
@@ -839,7 +917,11 @@ class CSemantics:
                         name, suggestion
                     )
                 )
-            self.error('Who is this "{}"?'.format(name), location, hints=hints)
+            self.error(
+                'Undeclared identifier: "{}"'.format(name),
+                location,
+                hints=hints,
+            )
         symbol = self.scope.get(name)
         declaration = symbol.declaration
         typ = declaration.typ
@@ -856,16 +938,16 @@ class CSemantics:
             # expr.typ = types.PointerType(variable.typ)
             lvalue = False
         else:  # pragma: no cover
-            self.not_impl("Access to {}".format(variable), location)
+            self.not_impl("Access to {}".format(declaration), location)
 
         expr = expressions.VariableAccess(symbol, typ, lvalue, location)
         return expr
 
     # Helpers!
-    def coerce(self, expr: expressions.Expression, typ: types.CType):
+    def coerce(self, expr: expressions.CExpression, typ: types.CType):
         """ Try to fit the given expression into the given type """
         assert isinstance(typ, types.CType)
-        assert isinstance(expr, expressions.Expression)
+        assert isinstance(expr, expressions.CExpression)
         do_cast = False
         from_type = expr.typ
         to_type = typ
@@ -923,6 +1005,14 @@ class CSemantics:
 
         The common type is a type they can both be cast to.
         """
+        # Auto cast to pointer to function.
+        # TBD: this is probably not the best place to do this?
+        if isinstance(typ1, types.FunctionType):
+            typ1 = types.PointerType(typ1)
+
+        if isinstance(typ2, types.FunctionType):
+            typ2 = types.PointerType(typ1)
+
         return max([typ1, typ2], key=lambda t: self._get_rank(t, location))
 
     basic_ranks = {
@@ -939,6 +1029,8 @@ class CSemantics:
         types.BasicType.SHORT: 40,
         types.BasicType.UCHAR: 31,
         types.BasicType.CHAR: 30,
+        # TODO: is void rank-able? for now give it a low rank.
+        types.BasicType.VOID: 0,
     }
 
     def _get_rank(self, typ, location):
@@ -947,7 +1039,10 @@ class CSemantics:
                 return self.basic_ranks[typ.type_id]
             else:
                 self.error(
-                    "Cannot determine type rank for {}".format(typ), location
+                    "Cannot determine type rank for '{}'".format(
+                        type_to_str(typ)
+                    ),
+                    location,
                 )
         elif isinstance(typ, types.EnumType):
             return 80
@@ -957,7 +1052,8 @@ class CSemantics:
             return 83
         else:
             self.error(
-                "Cannot determine type rank for {}".format(typ), location
+                "Cannot determine type rank for '{}'".format(type_to_str(typ)),
+                location,
             )
 
     def error(self, message, location, hints=None):

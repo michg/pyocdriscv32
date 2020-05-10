@@ -82,7 +82,12 @@ base_parser.add_argument(
     version=version_text,
     help="Display version and exit",
 )
-
+base_parser.add_argument(
+    "--pudb",
+    dest="drop_into_pudb",
+    action="store_true",
+    help="Drop into post mortem pudb session on crash",
+)
 
 march_parser = argparse.ArgumentParser(add_help=False)
 march_parser.add_argument(
@@ -125,7 +130,9 @@ class ColoredFormatter(logging.Formatter):
     """ Custom formatter that makes vt100 coloring to log messages """
 
     BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
-    colors = {"INFO": WHITE, "WARNING": YELLOW, "ERROR": RED}
+    # Before changing colors, consider that they must be legible on
+    # (at least) both white-on-black and black-on-white terminal themes.
+    colors = {"WARNING": MAGENTA, "ERROR": RED}
 
     def format(self, record):
         reset_seq = "\033[0m"
@@ -147,6 +154,15 @@ class LogSetup:
         self.file_handler = None
         self.logger = logging.getLogger()
         cgitb.enable(format="text")
+
+        if args.drop_into_pudb:
+
+            def hook(typ, value, tb):
+                import pudb
+
+                pudb.post_mortem(tb)
+
+            sys.excepthook = hook
 
     def __enter__(self):
         self.logger.setLevel(logging.DEBUG)
