@@ -7,7 +7,7 @@
   `define USE_PMP             0
   `define PULP_CLUSTER        1
   `define FPU                 1
-  `define Zfinx               0
+  `define Zfinx               1
   `define FP_DIVSQRT          1
   `define SHARED_FP           0
   `define SHARED_DSP_MULT     0

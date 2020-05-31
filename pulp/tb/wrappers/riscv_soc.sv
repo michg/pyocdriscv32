@@ -636,51 +636,6 @@ module riscv_soc
     .tx_o(tx_o),
     .event_o()
   );
-`ifdef VERILATOR
- logic writechar;
- always @(posedge core_clk) begin 
-		writechar <= 1'b0;
-		if ((ahb_master[1].HADDR == 32'h1c00_0000) && ahb_master[1].HWRITE) begin
-			writechar <= 1'b1; 
-			$write("%c", (ahb_master[1].HWDATA[7:0]));
-		end
-        
-		if(writechar) begin 
-            $write("%c", (ahb_master[1].HWDATA[7:0]));
-		end
-	end
 
-  function [7:0] getbufferReq;
-    /* verilator public */
-    begin
-      getbufferReq = (ahb_master[1].HWDATA);
-    end
-  endfunction
-
-  function printfbufferReq;
-    /* verilator public */
-    begin
-      printfbufferReq = ((ahb_master[1].HADDR == 32'h1C00_0000) && ahb_master[1].HWRITE);
-    end
-  endfunction
-
-  function writeWordIRAM;
-    /* verilator public */
-    input [31:0] addr_val;
-    input [31:0] word_val;
-    begin
-      instr_ram.ram_inst.genblk2.genblk2.ram_inst.mem_array[addr_val] = word_val;
-    end
-  endfunction
-
-  function writeWordDRAM;
-    /* verilator public */
-    input [31:0] addr_val;
-    input [31:0] word_val;
-    begin
-      data_ram.ram_inst.genblk2.genblk2.ram_inst.mem_array[addr_val] = word_val;
-    end
-  endfunction
-`endif
 
 endmodule
