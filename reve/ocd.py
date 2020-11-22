@@ -34,6 +34,10 @@ class ReveOCD:
     def __init__(self, engine, irlen):
         self._engine = engine
         self._irlen = irlen
+        if hasattr(engine,'virtual'):
+            self.virtual = engine._ctrl.virtual
+        else:
+            self.virtual = False
     
     def resetdm(self):
         self._engine.write_ir(BitSequence(value = 0x10, length=self._irlen))

@@ -937,7 +937,8 @@ class Ftdi:
 
            :param int latency: latency (unspecified unit)
         """
-        if not Ftdi.LATENCY_MIN <= latency <= Ftdi.LATENCY_MAX:
+        #if not Ftdi.LATENCY_MIN <= latency <= Ftdi.LATENCY_MAX:
+        if not 1 <= latency <= Ftdi.LATENCY_MAX:
             raise ValueError("Latency out of range")
         if self._ctrl_transfer_out(Ftdi.SIO_SET_LATENCY_TIMER, latency):
             raise FtdiError('Unable to latency timer')

@@ -1,5 +1,5 @@
 import sys, os, string
-from socket import *
+
 import select
 import logging 
 import time
@@ -12,6 +12,8 @@ from pulp.ocd import PulpOCD
 from reve.ocd import ReveOCD
 from collections import namedtuple
 from sys import argv
+from blaster import Blaster
+from sim import JtagSimController
 import struct
 
 def inrange(value, bits):    
@@ -30,104 +32,16 @@ archmap = {
     'reve': Revedata
     }
 
-class JtagSimController:
-    """JTAG master of an FTDI device"""
-    
-    # Private API
-    def __init__(self):
-        """
-        trst uses the nTRST optional JTAG line to hard-reset the TAP
-          controller
-        """
-        self.s = socket(AF_INET, SOCK_STREAM)
-        self._last = None  # Last deferred TDO bit 
-    
-    def clockout(self, tms, tdi):
-        TMS = 1
-        TDI = 2
-        TDO = 4
-        TCK = 8
-        val = tms*TMS + tdi*TDI 
-        self.s.send(chr(val).encode())
-        val = tms*TMS + tdi*TDI + TCK + TDO
-        self.s.send(chr(val).encode())
-        tdo = self.s.recv(1)[0]
-        return tdo
+VIR = 1
+VIRLEN = 1
+VIR = 0xE
+VDR = 0xC
 
-    def readsetdr(self, length, inval):
-        outval = 0
-        for i in range(length):
-            bit = inval & 1
-            tdo = self.clockout(0, bit)
-            inval >>= 1
-            outval += tdo<<i
-        return outval
-    
-    # Public API
-    def configure(self, port):
-        """Configure the FTDI interface as a JTAG controller"""
-        self.s.connect(('localhost', port))
-
-    def close(self):
-        self.s.close()
-
-    def reset(self):
-        """Reset the attached TAP controller.
-           sync sends the command immediately (no caching)
-        """
-        # we can either send a TRST HW signal or perform 5 cycles with TMS=1
-        # to move the remote TAP controller back to 'test_logic_reset'state
-        
-        # TAP reset (even with HW reset, could be removed though)
-        self.write_tms(BitSequence('11111'))
-    
-    def write_tms(self, tms):
-        """Change the TAP controller state"""
-        if not isinstance(tms, BitSequence):
-            raise JtagError('Expect a BitSequence')
-        for val in tms:
-            if(self._last):
-                self.clockout(val, 1)
-                self._last = None
-            else:
-                self.clockout(val, 0)
-
-    def read(self, length):
-        """Read out a sequence of bits from TDO"""
-        bs = BitSequence(value=self.readsetdr(length, 0), length=length)
-        return bs
-
-    def write(self, out, use_last=True):
-        if not isinstance(out, BitSequence):
-            return JtagError('Expect a BitSequence')
-        if use_last:
-            (out, self._last) = (out[:-1], bool(out[-1]))
-        length = len(out)
-        self.readsetdr(length, int(out))
-
-    def shift_register(self, out, use_last=False):
-        """Shift a BitSequence into the current register and retrieve the
-           register output"""
-        if not isinstance(out, BitSequence):
-            return JtagError('Expect a BitSequence')
-        if use_last:
-            (out, self._last) = (out[:-1], bool(out[-1]))
-        length = len(out)
-        bs = BitSequence(value=self.readsetdr(length, int(out)), length=length)
-        return bs
-
-
-class JtagSimEngine:
-    """High-level JTAG engine controller"""
-
-    def __init__(self):
-        self._ctrl = JtagSimController()
+class JtagOCDEngine():
+    def __init__(self, ctrl):
+        self._ctrl = ctrl
         self._sm = JtagStateMachine()
         self._seq = bytearray()
-
-    def configure(self, port):
-        """Configure the FTDI interface as a JTAG controller"""
-        self._ctrl.configure(port)
 
     def close(self):
         """Terminate a JTAG session/connection"""
@@ -138,9 +52,9 @@ class JtagSimEngine:
         self._ctrl.reset()
         self._sm.reset()
 
-    def write_tms(self, out):
+    def write_tms(self, out, should_read=False):
         """Change the TAP controller state"""
-        self._ctrl.write_tms(out)
+        return self._ctrl.write_tms(out, should_read)
 
     def read(self, length):
         """Read out a sequence of bits from TDO"""
@@ -168,7 +82,7 @@ class JtagSimEngine:
     def go_idle(self):
         """Change the current TAP controller to the IDLE state"""
         self.change_state('run_test_idle')
-
+    
     def write_ir(self, instruction):
         """Change the current instruction of the TAP controller"""
         self.change_state('shift_ir')
@@ -177,7 +91,7 @@ class JtagSimEngine:
 
     def capture_ir(self):
         """Capture the current instruction from the TAP controller"""
-        self.change_state('capture_ir')
+        self.change_state('capture_ir') 
 
     def write_dr(self, data):
         """Change the data register of the TAP controller"""
@@ -191,19 +105,41 @@ class JtagSimEngine:
         data = self._ctrl.read(length)
         self.change_state('update_dr')
         return data
-
+    
     def capture_dr(self):
         """Capture the current data register from the TAP controller"""
-        self.change_state('capture_dr')
-
-    def shift_register(self, length):
+        self.change_state('capture_dr') 
+    
+    def readwrite_dr(self, out):
+        """Read the data register from the TAP controller"""
+        self.change_state('shift_dr')
+        data = int(self._ctrl.writeread(out, use_last=True))
+        events = BitSequence('11')
+        tdo = int(self.write_tms(events, should_read=True))
+        # (write_tms calls sync())
+        # update the current state machine's state
+        self._sm.handle_events(events)
+        data+= tdo<<(len(out)-1)
+        return data
+        
+    
+    def enablevirtual(self):
+        self.write_ir(BitSequence(value=VIR, length=10))
+        self.write_dr(BitSequence(value=(1<<VIRLEN)|VIR , length=VIRLEN+1))
+        self.write_ir(BitSequence(value=VDR, length=10))
+    
+    def shift_register(self, out):
         if not self._sm.state_of('shift'):
             raise JtagError("Invalid state: %s" % self._sm.state())
         if self._sm.state_of('capture'):
             bs = BitSequence(False)
             self._ctrl.write_tms(bs)
             self._sm.handle_events(bs)
-        return self._ctrl.shift_register(length)
+        bs = self._ctrl.writeread(out, use_last=False)
+        return bs
+     
+    
+
 
 def loadbinary(filename, startadr):
     with open(filename, "rb") as f:
@@ -212,12 +148,17 @@ def loadbinary(filename, startadr):
         ocd.writemem(startadr + i*4, struct.unpack('<I',bindata[i*4:(i+1)*4])[0])
         
 if __name__ == '__main__':
-    if(argv[1]=='h'):
+    if(argv[1]=='f'):
         engine = JtagEngine(trst=False, frequency=10E3)
         engine.configure('ftdi://olimex:ft2232h/1')
-    else:
-        engine = JtagSimEngine()
-        engine.configure(7894)
+    elif(argv[1]=='s'):
+        ctrl = JtagSimController()
+        ctrl.configure(7894)
+        engine = JtagOCDEngine(ctrl)
+    elif(argv[1]=='v'):
+        ctrl = Blaster()
+        engine = JtagOCDEngine(ctrl)
+        
     tool = JtagTool(engine)
     time.sleep(1)
     engine.reset()

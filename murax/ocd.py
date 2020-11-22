@@ -26,18 +26,37 @@ class MuraxOCD:
     def __init__(self, engine, irlen):
         self._engine = engine
         self._irlen = irlen
+        if hasattr(engine._ctrl,'virtual'):
+            self.virtual = engine._ctrl.virtual
+        else:
+            self.virtual = False
+        
 
     def resetdm(self):
-        pass
+        if self.virtual:
+            self._engine.go_idle()
+            self._engine.change_state('capture_ir') 
+            print("Enabling virtual..")
+            self._engine.enablevirtual()
+        
+        
     def writecmd(self, adr, data, size, write):
-        self._engine.write_ir(BitSequence(value = 0x2, length=self._irlen))
-        self._engine.write_dr(BitSequence(value = ((adr&0xffffffff)<<8)| 
-        ((data&0xffffffff)<<40)|(write<<72) + (size<<73), length = 75))
+        if(self.virtual):
+            self._engine.write_dr(BitSequence(value = ((adr&0xffffffff)<<10)| 
+            ((data&0xffffffff)<<42)|(write<<74) + (size<<75), length = 77))
+        else:
+            self._engine.write_ir(BitSequence(value = 0x2, length=self._irlen))
+            self._engine.write_dr(BitSequence(value = ((adr&0xffffffff)<<8)| 
+            ((data&0xffffffff)<<40)|(write<<72) + (size<<73), length = 75))
     
     def readrsp(self, adr):
         self.writecmd(adr, 0, 2, 0)
-        self._engine.write_ir(BitSequence(value = 0x3, length=self._irlen))
-        val = int(self._engine.read_dr(34))
+        if(self.virtual):
+            val = int(self._engine.readwrite_dr(BitSequence(value = 0x1, length=36)))
+            val = val>>2
+        else:
+            self._engine.write_ir(BitSequence(value = 0x3, length=self._irlen))
+            val = int(self._engine.read_dr(34))
         val = (val>>2) & 0xffffffff
         return val
     
@@ -49,6 +68,9 @@ class MuraxOCD:
     
     def reset(self):
         self.writecmd(0, 1<<MuraxOCD.RESETREQBIT, 2, 1)
+    
+    def resetrelease(self):
+        self.writecmd(0, 1<<MuraxOCD.RESETRELEASEBIT, 2, 1)
     
     def pushins(self, ins): 
         self.writecmd(4, ins, 2, 1)

@@ -560,7 +560,7 @@ class JtagTool:
         stuck = None
         for length in range(1, MAX_REG_LEN):
             print("Testing for length %d" % length)
-            if length > 7:
+            if length > 12:
                 return
             zero = BitSequence(length=length)
             inj = BitSequence(length=length+PATTERN_LEN)

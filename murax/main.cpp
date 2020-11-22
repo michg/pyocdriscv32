@@ -17,7 +17,7 @@ public:
 	MuraxWorkspace(int vcd) : Workspace("Murax", vcd){
 		//MuraxWorkspace() : Workspace("Murax"){
 		ClockDomain *mainClk = new ClockDomain(&top->io_mainClk,NULL,20,300);
-		AsyncReset *asyncReset = new AsyncReset(&top->io_asyncReset,500, 0);
+		AsyncReset *asyncReset = new AsyncReset(&top->io_xasyncReset,500, 1);
 		UartRx *uartRx = new UartRx(&top->io_uart_txd,1.0e9/115200);
 		UartTx *uartTx = new UartTx(&top->io_uart_rxd,1.0e9/115200);
 

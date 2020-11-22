@@ -43,24 +43,6 @@
 `define Src1CtrlEnum_defaultEncoding_PC_INCREMENT 2'b10
 `define Src1CtrlEnum_defaultEncoding_URS1 2'b11
 
-`define JtagState_defaultEncoding_type [3:0]
-`define JtagState_defaultEncoding_RESET 4'b0000
-`define JtagState_defaultEncoding_IDLE 4'b0001
-`define JtagState_defaultEncoding_IR_SELECT 4'b0010
-`define JtagState_defaultEncoding_IR_CAPTURE 4'b0011
-`define JtagState_defaultEncoding_IR_SHIFT 4'b0100
-`define JtagState_defaultEncoding_IR_EXIT1 4'b0101
-`define JtagState_defaultEncoding_IR_PAUSE 4'b0110
-`define JtagState_defaultEncoding_IR_EXIT2 4'b0111
-`define JtagState_defaultEncoding_IR_UPDATE 4'b1000
-`define JtagState_defaultEncoding_DR_SELECT 4'b1001
-`define JtagState_defaultEncoding_DR_CAPTURE 4'b1010
-`define JtagState_defaultEncoding_DR_SHIFT 4'b1011
-`define JtagState_defaultEncoding_DR_EXIT1 4'b1100
-`define JtagState_defaultEncoding_DR_PAUSE 4'b1101
-`define JtagState_defaultEncoding_DR_EXIT2 4'b1110
-`define JtagState_defaultEncoding_DR_UPDATE 4'b1111
-
 `define UartStopType_defaultEncoding_type [0:0]
 `define UartStopType_defaultEncoding_ONE 1'b0
 `define UartStopType_defaultEncoding_TWO 1'b1
@@ -85,26 +67,24 @@
 `define UartCtrlRxState_defaultEncoding_STOP 3'b100
 
 
-module Murax (
+module muraxvirt (
   input               io_xasyncReset,
   input               io_mainClk,
-  input               io_jtag_tms,
-  input               io_jtag_tdi,
-  output              io_jtag_tdo,
-  input               io_jtag_tck,
   output              io_uart_txd,
   input               io_uart_rxd
 );
   wire                _zz_5;
   wire                _zz_6;
   wire       [7:0]    _zz_7;
-  reg                 _zz_8;
-  reg                 _zz_9;
-  wire       [3:0]    _zz_10;
-  wire       [4:0]    _zz_11;
-  wire       [7:0]    _zz_12;
-  wire                _zz_13;
-  reg        [31:0]   _zz_14;
+  wire                _zz_8;
+  wire                _zz_9;
+  reg                 _zz_10;
+  reg                 _zz_11;
+  wire       [3:0]    _zz_12;
+  wire       [4:0]    _zz_13;
+  wire       [7:0]    _zz_14;
+  wire                _zz_15;
+  reg        [31:0]   _zz_16;
   wire                bufferCC_4_io_dataOut;
   wire                system_mainBusArbiter_io_iBus_cmd_ready;
   wire                system_mainBusArbiter_io_iBus_rsp_valid;
@@ -129,11 +109,16 @@ module Murax (
   wire       [31:0]   system_cpu_dBus_cmd_payload_address;
   wire       [31:0]   system_cpu_dBus_cmd_payload_data;
   wire       [1:0]    system_cpu_dBus_cmd_payload_size;
-  wire                jtagBridge_1_io_jtag_tdo;
-  wire                jtagBridge_1_io_remote_cmd_valid;
-  wire                jtagBridge_1_io_remote_cmd_payload_last;
-  wire       [0:0]    jtagBridge_1_io_remote_cmd_payload_fragment;
-  wire                jtagBridge_1_io_remote_rsp_ready;
+  wire                virtual_jtag_1_virtual_state_cdr;
+  wire                virtual_jtag_1_virtual_state_sdr;
+  wire                virtual_jtag_1_tck;
+  wire                virtual_jtag_1_tdi;
+  wire                virtual_jtag_1_virtual_state_udr;
+  wire                jtagBridgeNoTap_1_io_ctrl_tdo;
+  wire                jtagBridgeNoTap_1_io_remote_cmd_valid;
+  wire                jtagBridgeNoTap_1_io_remote_cmd_payload_last;
+  wire       [0:0]    jtagBridgeNoTap_1_io_remote_cmd_payload_fragment;
+  wire                jtagBridgeNoTap_1_io_remote_rsp_ready;
   wire                systemDebugger_1_io_remote_cmd_ready;
   wire                systemDebugger_1_io_remote_rsp_valid;
   wire                systemDebugger_1_io_remote_rsp_payload_error;
@@ -191,9 +176,9 @@ module Murax (
   wire                apb3Router_1_io_outputs_2_PENABLE;
   wire                apb3Router_1_io_outputs_2_PWRITE;
   wire       [31:0]   apb3Router_1_io_outputs_2_PWDATA;
-  wire                _zz_15;
-  wire                _zz_16;
   wire                _zz_17;
+  wire                _zz_18;
+  wire                _zz_19;
   reg                 resetCtrl_mainClkResetUnbuffered;
   reg        [5:0]    resetCtrl_systemClkResetCounter = 6'h0;
   wire       [5:0]    _zz_1;
@@ -232,9 +217,9 @@ module Murax (
   reg                 system_mainBusDecoder_logic_rspNoHit;
   reg        [0:0]    system_mainBusDecoder_logic_rspSourceId;
 
-  assign _zz_15 = (resetCtrl_systemClkResetCounter != _zz_1);
-  assign _zz_16 = (system_mainBusDecoder_logic_rspPending && (! system_mainBusDecoder_logic_masterPipelined_rsp_valid));
-  assign _zz_17 = (! system_cpu_dBus_cmd_halfPipe_regs_valid);
+  assign _zz_17 = (resetCtrl_systemClkResetCounter != _zz_1);
+  assign _zz_18 = (system_mainBusDecoder_logic_rspPending && (! system_mainBusDecoder_logic_masterPipelined_rsp_valid));
+  assign _zz_19 = (! system_cpu_dBus_cmd_halfPipe_regs_valid);
   BufferCC_3 bufferCC_4 (
     .io_dataIn     (_zz_5                  ), //i
     .io_dataOut    (bufferCC_4_io_dataOut  ), //o
@@ -297,29 +282,41 @@ module Murax (
     .resetCtrl_systemReset            (resetCtrl_systemReset                                 ), //i
     .resetCtrl_mainClkReset           (resetCtrl_mainClkReset                                )  //i
   );
-  JtagBridge jtagBridge_1 (
-    .io_jtag_tms                       (io_jtag_tms                                        ), //i
-    .io_jtag_tdi                       (io_jtag_tdi                                        ), //i
-    .io_jtag_tdo                       (jtagBridge_1_io_jtag_tdo                           ), //o
-    .io_jtag_tck                       (io_jtag_tck                                        ), //i
-    .io_remote_cmd_valid               (jtagBridge_1_io_remote_cmd_valid                   ), //o
+  virtual_jtag virtual_jtag_1 (
+    .virtual_state_cdr    (virtual_jtag_1_virtual_state_cdr  ), //o
+    .virtual_state_sdr    (virtual_jtag_1_virtual_state_sdr  ), //o
+    .tck                  (virtual_jtag_1_tck                ), //o
+    .tdi                  (virtual_jtag_1_tdi                ), //o
+    .virtual_state_udr    (virtual_jtag_1_virtual_state_udr  ), //o
+    .tdo                  (jtagBridgeNoTap_1_io_ctrl_tdo     )  //i
+  );
+  JtagBridgeNoTap jtagBridgeNoTap_1 (
+    .io_ctrl_tdi                       (virtual_jtag_1_tdi                                 ), //i
+    .io_ctrl_enable                    (_zz_8                                              ), //i
+    .io_ctrl_capture                   (virtual_jtag_1_virtual_state_cdr                   ), //i
+    .io_ctrl_shift                     (virtual_jtag_1_virtual_state_sdr                   ), //i
+    .io_ctrl_update                    (virtual_jtag_1_virtual_state_udr                   ), //i
+    .io_ctrl_reset                     (_zz_9                                              ), //i
+    .io_ctrl_tdo                       (jtagBridgeNoTap_1_io_ctrl_tdo                      ), //o
+    .io_remote_cmd_valid               (jtagBridgeNoTap_1_io_remote_cmd_valid              ), //o
     .io_remote_cmd_ready               (systemDebugger_1_io_remote_cmd_ready               ), //i
-    .io_remote_cmd_payload_last        (jtagBridge_1_io_remote_cmd_payload_last            ), //o
-    .io_remote_cmd_payload_fragment    (jtagBridge_1_io_remote_cmd_payload_fragment        ), //o
+    .io_remote_cmd_payload_last        (jtagBridgeNoTap_1_io_remote_cmd_payload_last       ), //o
+    .io_remote_cmd_payload_fragment    (jtagBridgeNoTap_1_io_remote_cmd_payload_fragment   ), //o
     .io_remote_rsp_valid               (systemDebugger_1_io_remote_rsp_valid               ), //i
-    .io_remote_rsp_ready               (jtagBridge_1_io_remote_rsp_ready                   ), //o
+    .io_remote_rsp_ready               (jtagBridgeNoTap_1_io_remote_rsp_ready              ), //o
     .io_remote_rsp_payload_error       (systemDebugger_1_io_remote_rsp_payload_error       ), //i
     .io_remote_rsp_payload_data        (systemDebugger_1_io_remote_rsp_payload_data[31:0]  ), //i
     .io_mainClk                        (io_mainClk                                         ), //i
-    .resetCtrl_mainClkReset            (resetCtrl_mainClkReset                             )  //i
+    .resetCtrl_mainClkReset            (resetCtrl_mainClkReset                             ), //i
+    .tck                               (virtual_jtag_1_tck                                 )  //i
   );
   SystemDebugger systemDebugger_1 (
-    .io_remote_cmd_valid               (jtagBridge_1_io_remote_cmd_valid                   ), //i
+    .io_remote_cmd_valid               (jtagBridgeNoTap_1_io_remote_cmd_valid              ), //i
     .io_remote_cmd_ready               (systemDebugger_1_io_remote_cmd_ready               ), //o
-    .io_remote_cmd_payload_last        (jtagBridge_1_io_remote_cmd_payload_last            ), //i
-    .io_remote_cmd_payload_fragment    (jtagBridge_1_io_remote_cmd_payload_fragment        ), //i
+    .io_remote_cmd_payload_last        (jtagBridgeNoTap_1_io_remote_cmd_payload_last       ), //i
+    .io_remote_cmd_payload_fragment    (jtagBridgeNoTap_1_io_remote_cmd_payload_fragment   ), //i
     .io_remote_rsp_valid               (systemDebugger_1_io_remote_rsp_valid               ), //o
-    .io_remote_rsp_ready               (jtagBridge_1_io_remote_rsp_ready                   ), //i
+    .io_remote_rsp_ready               (jtagBridgeNoTap_1_io_remote_rsp_ready              ), //i
     .io_remote_rsp_payload_error       (systemDebugger_1_io_remote_rsp_payload_error       ), //o
     .io_remote_rsp_payload_data        (systemDebugger_1_io_remote_rsp_payload_data[31:0]  ), //o
     .io_mem_cmd_valid                  (systemDebugger_1_io_mem_cmd_valid                  ), //o
@@ -334,7 +331,7 @@ module Murax (
     .resetCtrl_mainClkReset            (resetCtrl_mainClkReset                             )  //i
   );
   MuraxPipelinedMemoryBusRam system_ram (
-    .io_bus_cmd_valid              (_zz_8                                                                  ), //i
+    .io_bus_cmd_valid              (_zz_10                                                                 ), //i
     .io_bus_cmd_ready              (system_ram_io_bus_cmd_ready                                            ), //o
     .io_bus_cmd_payload_write      (_zz_3                                                                  ), //i
     .io_bus_cmd_payload_address    (system_mainBusDecoder_logic_masterPipelined_cmd_payload_address[31:0]  ), //i
@@ -346,7 +343,7 @@ module Murax (
     .resetCtrl_systemReset         (resetCtrl_systemReset                                                  )  //i
   );
   PipelinedMemoryBusToApbBridge system_apbBridge (
-    .io_pipelinedMemoryBus_cmd_valid              (_zz_9                                                                  ), //i
+    .io_pipelinedMemoryBus_cmd_valid              (_zz_11                                                                 ), //i
     .io_pipelinedMemoryBus_cmd_ready              (system_apbBridge_io_pipelinedMemoryBus_cmd_ready                       ), //o
     .io_pipelinedMemoryBus_cmd_payload_write      (_zz_4                                                                  ), //i
     .io_pipelinedMemoryBus_cmd_payload_address    (system_mainBusDecoder_logic_masterPipelined_cmd_payload_address[31:0]  ), //i
@@ -366,7 +363,7 @@ module Murax (
     .resetCtrl_systemReset                        (resetCtrl_systemReset                                                  )  //i
   );
   Apb3Gpio system_gpioACtrl (
-    .io_apb_PADDR             (_zz_10[3:0]                             ), //i
+    .io_apb_PADDR             (_zz_12[3:0]                             ), //i
     .io_apb_PSEL              (apb3Router_1_io_outputs_0_PSEL          ), //i
     .io_apb_PENABLE           (apb3Router_1_io_outputs_0_PENABLE       ), //i
     .io_apb_PREADY            (system_gpioACtrl_io_apb_PREADY          ), //o
@@ -378,7 +375,7 @@ module Murax (
     .resetCtrl_systemReset    (resetCtrl_systemReset                   )  //i
   );
   Apb3UartCtrl system_uartCtrl (
-    .io_apb_PADDR             (_zz_11[4:0]                             ), //i
+    .io_apb_PADDR             (_zz_13[4:0]                             ), //i
     .io_apb_PSEL              (apb3Router_1_io_outputs_1_PSEL          ), //i
     .io_apb_PENABLE           (apb3Router_1_io_outputs_1_PENABLE       ), //i
     .io_apb_PREADY            (system_uartCtrl_io_apb_PREADY           ), //o
@@ -392,7 +389,7 @@ module Murax (
     .resetCtrl_systemReset    (resetCtrl_systemReset                   )  //i
   );
   MuraxApb3Timer system_timer (
-    .io_apb_PADDR             (_zz_12[7:0]                             ), //i
+    .io_apb_PADDR             (_zz_14[7:0]                             ), //i
     .io_apb_PSEL              (apb3Router_1_io_outputs_2_PSEL          ), //i
     .io_apb_PENABLE           (apb3Router_1_io_outputs_2_PENABLE       ), //i
     .io_apb_PREADY            (system_timer_io_apb_PREADY              ), //o
@@ -446,7 +443,7 @@ module Murax (
     .io_outputs_1_PWRITE       (apb3Router_1_io_outputs_1_PWRITE        ), //o
     .io_outputs_1_PWDATA       (apb3Router_1_io_outputs_1_PWDATA[31:0]  ), //o
     .io_outputs_1_PRDATA       (system_uartCtrl_io_apb_PRDATA[31:0]     ), //i
-    .io_outputs_1_PSLVERROR    (_zz_13                                  ), //i
+    .io_outputs_1_PSLVERROR    (_zz_15                                  ), //i
     .io_outputs_2_PADDR        (apb3Router_1_io_outputs_2_PADDR[19:0]   ), //o
     .io_outputs_2_PSEL         (apb3Router_1_io_outputs_2_PSEL          ), //o
     .io_outputs_2_PENABLE      (apb3Router_1_io_outputs_2_PENABLE       ), //o
@@ -461,17 +458,17 @@ module Murax (
   always @(*) begin
     case(system_mainBusDecoder_logic_rspSourceId)
       1'b0 : begin
-        _zz_14 = system_ram_io_bus_rsp_payload_data;
+        _zz_16 = system_ram_io_bus_rsp_payload_data;
       end
       default : begin
-        _zz_14 = system_apbBridge_io_pipelinedMemoryBus_rsp_payload_data;
+        _zz_16 = system_apbBridge_io_pipelinedMemoryBus_rsp_payload_data;
       end
     endcase
   end
 
   always @ (*) begin
     resetCtrl_mainClkResetUnbuffered = 1'b0;
-    if(_zz_15)begin
+    if(_zz_17)begin
       resetCtrl_mainClkResetUnbuffered = 1'b1;
     end
   end
@@ -498,13 +495,14 @@ module Murax (
   assign system_cpu_dBus_cmd_halfPipe_payload_data = system_cpu_dBus_cmd_halfPipe_regs_payload_data;
   assign system_cpu_dBus_cmd_halfPipe_payload_size = system_cpu_dBus_cmd_halfPipe_regs_payload_size;
   assign system_cpu_dBus_cmd_halfPipe_ready = system_mainBusArbiter_io_dBus_cmd_ready;
+  assign _zz_8 = 1'b1;
+  assign _zz_9 = 1'b0;
   assign _zz_7 = systemDebugger_1_io_mem_cmd_payload_address[7:0];
-  assign io_jtag_tdo = jtagBridge_1_io_jtag_tdo;
   assign io_uart_txd = system_uartCtrl_io_uart_txd;
-  assign _zz_10 = apb3Router_1_io_outputs_0_PADDR[3:0];
-  assign _zz_11 = apb3Router_1_io_outputs_1_PADDR[4:0];
-  assign _zz_13 = 1'b0;
-  assign _zz_12 = apb3Router_1_io_outputs_2_PADDR[7:0];
+  assign _zz_12 = apb3Router_1_io_outputs_0_PADDR[3:0];
+  assign _zz_13 = apb3Router_1_io_outputs_1_PADDR[4:0];
+  assign _zz_15 = 1'b0;
+  assign _zz_14 = apb3Router_1_io_outputs_2_PADDR[7:0];
   assign system_mainBusDecoder_logic_masterPipelined_cmd_valid = system_mainBusArbiter_io_masterBus_cmd_valid;
   assign system_mainBusDecoder_logic_masterPipelined_cmd_payload_write = system_mainBusArbiter_io_masterBus_cmd_payload_write;
   assign system_mainBusDecoder_logic_masterPipelined_cmd_payload_address = system_mainBusArbiter_io_masterBus_cmd_payload_address;
@@ -512,18 +510,18 @@ module Murax (
   assign system_mainBusDecoder_logic_masterPipelined_cmd_payload_mask = system_mainBusArbiter_io_masterBus_cmd_payload_mask;
   assign system_mainBusDecoder_logic_hits_0 = ((system_mainBusDecoder_logic_masterPipelined_cmd_payload_address & (~ 32'h0001ffff)) == 32'h80000000);
   always @ (*) begin
-    _zz_8 = (system_mainBusDecoder_logic_masterPipelined_cmd_valid && system_mainBusDecoder_logic_hits_0);
-    if(_zz_16)begin
-      _zz_8 = 1'b0;
+    _zz_10 = (system_mainBusDecoder_logic_masterPipelined_cmd_valid && system_mainBusDecoder_logic_hits_0);
+    if(_zz_18)begin
+      _zz_10 = 1'b0;
     end
   end
 
   assign _zz_3 = system_mainBusDecoder_logic_masterPipelined_cmd_payload_write;
   assign system_mainBusDecoder_logic_hits_1 = ((system_mainBusDecoder_logic_masterPipelined_cmd_payload_address & (~ 32'h000fffff)) == 32'hf0000000);
   always @ (*) begin
-    _zz_9 = (system_mainBusDecoder_logic_masterPipelined_cmd_valid && system_mainBusDecoder_logic_hits_1);
-    if(_zz_16)begin
-      _zz_9 = 1'b0;
+    _zz_11 = (system_mainBusDecoder_logic_masterPipelined_cmd_valid && system_mainBusDecoder_logic_hits_1);
+    if(_zz_18)begin
+      _zz_11 = 1'b0;
     end
   end
 
@@ -531,16 +529,16 @@ module Murax (
   assign system_mainBusDecoder_logic_noHit = (! ({system_mainBusDecoder_logic_hits_1,system_mainBusDecoder_logic_hits_0} != 2'b00));
   always @ (*) begin
     system_mainBusDecoder_logic_masterPipelined_cmd_ready = (({(system_mainBusDecoder_logic_hits_1 && system_apbBridge_io_pipelinedMemoryBus_cmd_ready),(system_mainBusDecoder_logic_hits_0 && system_ram_io_bus_cmd_ready)} != 2'b00) || system_mainBusDecoder_logic_noHit);
-    if(_zz_16)begin
+    if(_zz_18)begin
       system_mainBusDecoder_logic_masterPipelined_cmd_ready = 1'b0;
     end
   end
 
   assign system_mainBusDecoder_logic_masterPipelined_rsp_valid = (({system_apbBridge_io_pipelinedMemoryBus_rsp_valid,system_ram_io_bus_rsp_valid} != 2'b00) || (system_mainBusDecoder_logic_rspPending && system_mainBusDecoder_logic_rspNoHit));
-  assign system_mainBusDecoder_logic_masterPipelined_rsp_payload_data = _zz_14;
+  assign system_mainBusDecoder_logic_masterPipelined_rsp_payload_data = _zz_16;
   assign _zz_6 = 1'b0;
   always @ (posedge io_mainClk) begin
-    if(_zz_15)begin
+    if(_zz_17)begin
       resetCtrl_systemClkResetCounter <= (resetCtrl_systemClkResetCounter + 6'h01);
     end
     if(bufferCC_4_io_dataOut)begin
@@ -563,7 +561,7 @@ module Murax (
       system_mainBusDecoder_logic_rspPending <= 1'b0;
       system_mainBusDecoder_logic_rspNoHit <= 1'b0;
     end else begin
-      if(_zz_17)begin
+      if(_zz_19)begin
         system_cpu_dBus_cmd_halfPipe_regs_valid <= system_cpu_dBus_cmd_valid;
         system_cpu_dBus_cmd_halfPipe_regs_ready <= (! system_cpu_dBus_cmd_valid);
       end else begin
@@ -584,7 +582,7 @@ module Murax (
   end
 
   always @ (posedge io_mainClk) begin
-    if(_zz_17)begin
+    if(_zz_19)begin
       system_cpu_dBus_cmd_halfPipe_regs_payload_wr <= system_cpu_dBus_cmd_payload_wr;
       system_cpu_dBus_cmd_halfPipe_regs_payload_address <= system_cpu_dBus_cmd_payload_address;
       system_cpu_dBus_cmd_halfPipe_regs_payload_data <= system_cpu_dBus_cmd_payload_data;
@@ -1723,11 +1721,14 @@ module SystemDebugger (
 
 endmodule
 
-module JtagBridge (
-  input               io_jtag_tms,
-  input               io_jtag_tdi,
-  output              io_jtag_tdo,
-  input               io_jtag_tck,
+module JtagBridgeNoTap (
+  input               io_ctrl_tdi,
+  input               io_ctrl_enable,
+  input               io_ctrl_capture,
+  input               io_ctrl_shift,
+  input               io_ctrl_update,
+  input               io_ctrl_reset,
+  output              io_ctrl_tdo,
   output              io_remote_cmd_valid,
   input               io_remote_cmd_ready,
   output              io_remote_cmd_payload_last,
@@ -1737,217 +1738,121 @@ module JtagBridge (
   input               io_remote_rsp_payload_error,
   input      [31:0]   io_remote_rsp_payload_data,
   input               io_mainClk,
-  input               resetCtrl_mainClkReset
+  input               resetCtrl_mainClkReset,
+  input               tck
 );
-  wire                _zz_11;
+  wire                _zz_9;
   wire                flowCCByToggle_1_io_output_valid;
   wire                flowCCByToggle_1_io_output_payload_last;
   wire       [0:0]    flowCCByToggle_1_io_output_payload_fragment;
+  wire                _zz_10;
+  wire                _zz_11;
   wire                system_cmd_valid;
   wire                system_cmd_payload_last;
   wire       [0:0]    system_cmd_payload_fragment;
   reg                 system_rsp_valid;
   reg                 system_rsp_payload_error;
   reg        [31:0]   system_rsp_payload_data;
-  wire       `JtagState_defaultEncoding_type jtag_tap_fsm_stateNext;
-  reg        `JtagState_defaultEncoding_type jtag_tap_fsm_state = `JtagState_defaultEncoding_RESET;
-  reg        `JtagState_defaultEncoding_type _zz_1;
-  reg        [3:0]    jtag_tap_instruction;
-  reg        [3:0]    jtag_tap_instructionShift;
-  reg                 jtag_tap_bypass;
-  reg                 jtag_tap_tdoUnbufferd;
-  reg                 jtag_tap_tdoDr;
-  wire                jtag_tap_tdoIr;
-  reg                 jtag_tap_tdoUnbufferd_regNext;
+  wire                jtag_wrapper_ctrl_tdi;
+  wire                jtag_wrapper_ctrl_enable;
+  wire                jtag_wrapper_ctrl_capture;
+  wire                jtag_wrapper_ctrl_shift;
+  wire                jtag_wrapper_ctrl_update;
+  wire                jtag_wrapper_ctrl_reset;
+  reg                 jtag_wrapper_ctrl_tdo;
+  reg        [1:0]    jtag_wrapper_header;
+  wire       [1:0]    jtag_wrapper_headerNext;
+  reg        [0:0]    jtag_wrapper_counter;
+  reg                 jtag_wrapper_done;
+  reg                 jtag_wrapper_sendCapture;
+  reg                 jtag_wrapper_sendShift;
+  reg                 jtag_wrapper_sendUpdate;
+  wire                _zz_1;
   wire                _zz_2;
-  reg        [31:0]   _zz_3;
-  wire                _zz_4;
-  wire                _zz_5;
-  wire       [0:0]    _zz_6;
-  reg                 _zz_7;
-  reg                 _zz_8;
-  wire                _zz_9;
-  reg        [33:0]   _zz_10;
-  `ifndef SYNTHESIS
-  reg [79:0] jtag_tap_fsm_stateNext_string;
-  reg [79:0] jtag_tap_fsm_state_string;
-  reg [79:0] _zz_1_string;
-  `endif
+  wire       [0:0]    _zz_3;
+  reg                 _zz_4;
+  reg                 _zz_5;
+  wire                _zz_6;
+  reg        [33:0]   _zz_7;
+  wire                _zz_8;
 
-
+  assign _zz_10 = (! jtag_wrapper_done);
+  assign _zz_11 = (jtag_wrapper_counter == 1'b1);
   FlowCCByToggle flowCCByToggle_1 (
-    .io_input_valid                (_zz_7                                        ), //i
-    .io_input_payload_last         (_zz_11                                       ), //i
-    .io_input_payload_fragment     (_zz_6                                        ), //i
+    .io_input_valid                (_zz_4                                        ), //i
+    .io_input_payload_last         (_zz_9                                        ), //i
+    .io_input_payload_fragment     (_zz_3                                        ), //i
     .io_output_valid               (flowCCByToggle_1_io_output_valid             ), //o
     .io_output_payload_last        (flowCCByToggle_1_io_output_payload_last      ), //o
     .io_output_payload_fragment    (flowCCByToggle_1_io_output_payload_fragment  ), //o
-    .io_jtag_tck                   (io_jtag_tck                                  ), //i
+    .tck                           (tck                                          ), //i
     .io_mainClk                    (io_mainClk                                   ), //i
     .resetCtrl_mainClkReset        (resetCtrl_mainClkReset                       )  //i
   );
-  `ifndef SYNTHESIS
-  always @(*) begin
-    case(jtag_tap_fsm_stateNext)
-      `JtagState_defaultEncoding_RESET : jtag_tap_fsm_stateNext_string = "RESET     ";
-      `JtagState_defaultEncoding_IDLE : jtag_tap_fsm_stateNext_string = "IDLE      ";
-      `JtagState_defaultEncoding_IR_SELECT : jtag_tap_fsm_stateNext_string = "IR_SELECT ";
-      `JtagState_defaultEncoding_IR_CAPTURE : jtag_tap_fsm_stateNext_string = "IR_CAPTURE";
-      `JtagState_defaultEncoding_IR_SHIFT : jtag_tap_fsm_stateNext_string = "IR_SHIFT  ";
-      `JtagState_defaultEncoding_IR_EXIT1 : jtag_tap_fsm_stateNext_string = "IR_EXIT1  ";
-      `JtagState_defaultEncoding_IR_PAUSE : jtag_tap_fsm_stateNext_string = "IR_PAUSE  ";
-      `JtagState_defaultEncoding_IR_EXIT2 : jtag_tap_fsm_stateNext_string = "IR_EXIT2  ";
-      `JtagState_defaultEncoding_IR_UPDATE : jtag_tap_fsm_stateNext_string = "IR_UPDATE ";
-      `JtagState_defaultEncoding_DR_SELECT : jtag_tap_fsm_stateNext_string = "DR_SELECT ";
-      `JtagState_defaultEncoding_DR_CAPTURE : jtag_tap_fsm_stateNext_string = "DR_CAPTURE";
-      `JtagState_defaultEncoding_DR_SHIFT : jtag_tap_fsm_stateNext_string = "DR_SHIFT  ";
-      `JtagState_defaultEncoding_DR_EXIT1 : jtag_tap_fsm_stateNext_string = "DR_EXIT1  ";
-      `JtagState_defaultEncoding_DR_PAUSE : jtag_tap_fsm_stateNext_string = "DR_PAUSE  ";
-      `JtagState_defaultEncoding_DR_EXIT2 : jtag_tap_fsm_stateNext_string = "DR_EXIT2  ";
-      `JtagState_defaultEncoding_DR_UPDATE : jtag_tap_fsm_stateNext_string = "DR_UPDATE ";
-      default : jtag_tap_fsm_stateNext_string = "??????????";
-    endcase
-  end
-  always @(*) begin
-    case(jtag_tap_fsm_state)
-      `JtagState_defaultEncoding_RESET : jtag_tap_fsm_state_string = "RESET     ";
-      `JtagState_defaultEncoding_IDLE : jtag_tap_fsm_state_string = "IDLE      ";
-      `JtagState_defaultEncoding_IR_SELECT : jtag_tap_fsm_state_string = "IR_SELECT ";
-      `JtagState_defaultEncoding_IR_CAPTURE : jtag_tap_fsm_state_string = "IR_CAPTURE";
-      `JtagState_defaultEncoding_IR_SHIFT : jtag_tap_fsm_state_string = "IR_SHIFT  ";
-      `JtagState_defaultEncoding_IR_EXIT1 : jtag_tap_fsm_state_string = "IR_EXIT1  ";
-      `JtagState_defaultEncoding_IR_PAUSE : jtag_tap_fsm_state_string = "IR_PAUSE  ";
-      `JtagState_defaultEncoding_IR_EXIT2 : jtag_tap_fsm_state_string = "IR_EXIT2  ";
-      `JtagState_defaultEncoding_IR_UPDATE : jtag_tap_fsm_state_string = "IR_UPDATE ";
-      `JtagState_defaultEncoding_DR_SELECT : jtag_tap_fsm_state_string = "DR_SELECT ";
-      `JtagState_defaultEncoding_DR_CAPTURE : jtag_tap_fsm_state_string = "DR_CAPTURE";
-      `JtagState_defaultEncoding_DR_SHIFT : jtag_tap_fsm_state_string = "DR_SHIFT  ";
-      `JtagState_defaultEncoding_DR_EXIT1 : jtag_tap_fsm_state_string = "DR_EXIT1  ";
-      `JtagState_defaultEncoding_DR_PAUSE : jtag_tap_fsm_state_string = "DR_PAUSE  ";
-      `JtagState_defaultEncoding_DR_EXIT2 : jtag_tap_fsm_state_string = "DR_EXIT2  ";
-      `JtagState_defaultEncoding_DR_UPDATE : jtag_tap_fsm_state_string = "DR_UPDATE ";
-      default : jtag_tap_fsm_state_string = "??????????";
-    endcase
-  end
-  always @(*) begin
-    case(_zz_1)
-      `JtagState_defaultEncoding_RESET : _zz_1_string = "RESET     ";
-      `JtagState_defaultEncoding_IDLE : _zz_1_string = "IDLE      ";
-      `JtagState_defaultEncoding_IR_SELECT : _zz_1_string = "IR_SELECT ";
-      `JtagState_defaultEncoding_IR_CAPTURE : _zz_1_string = "IR_CAPTURE";
-      `JtagState_defaultEncoding_IR_SHIFT : _zz_1_string = "IR_SHIFT  ";
-      `JtagState_defaultEncoding_IR_EXIT1 : _zz_1_string = "IR_EXIT1  ";
-      `JtagState_defaultEncoding_IR_PAUSE : _zz_1_string = "IR_PAUSE  ";
-      `JtagState_defaultEncoding_IR_EXIT2 : _zz_1_string = "IR_EXIT2  ";
-      `JtagState_defaultEncoding_IR_UPDATE : _zz_1_string = "IR_UPDATE ";
-      `JtagState_defaultEncoding_DR_SELECT : _zz_1_string = "DR_SELECT ";
-      `JtagState_defaultEncoding_DR_CAPTURE : _zz_1_string = "DR_CAPTURE";
-      `JtagState_defaultEncoding_DR_SHIFT : _zz_1_string = "DR_SHIFT  ";
-      `JtagState_defaultEncoding_DR_EXIT1 : _zz_1_string = "DR_EXIT1  ";
-      `JtagState_defaultEncoding_DR_PAUSE : _zz_1_string = "DR_PAUSE  ";
-      `JtagState_defaultEncoding_DR_EXIT2 : _zz_1_string = "DR_EXIT2  ";
-      `JtagState_defaultEncoding_DR_UPDATE : _zz_1_string = "DR_UPDATE ";
-      default : _zz_1_string = "??????????";
-    endcase
-  end
-  `endif
-
   assign io_remote_cmd_valid = system_cmd_valid;
   assign io_remote_cmd_payload_last = system_cmd_payload_last;
   assign io_remote_cmd_payload_fragment = system_cmd_payload_fragment;
   assign io_remote_rsp_ready = 1'b1;
+  assign jtag_wrapper_headerNext = ({jtag_wrapper_ctrl_tdi,jtag_wrapper_header} >>> 1);
   always @ (*) begin
-    case(jtag_tap_fsm_state)
-      `JtagState_defaultEncoding_IDLE : begin
-        _zz_1 = (io_jtag_tms ? `JtagState_defaultEncoding_DR_SELECT : `JtagState_defaultEncoding_IDLE);
+    jtag_wrapper_sendCapture = 1'b0;
+    if(jtag_wrapper_ctrl_enable)begin
+      if(jtag_wrapper_ctrl_shift)begin
+        if(_zz_10)begin
+          if(_zz_11)begin
+            jtag_wrapper_sendCapture = 1'b1;
+          end
+        end
       end
-      `JtagState_defaultEncoding_IR_SELECT : begin
-        _zz_1 = (io_jtag_tms ? `JtagState_defaultEncoding_RESET : `JtagState_defaultEncoding_IR_CAPTURE);
-      end
-      `JtagState_defaultEncoding_IR_CAPTURE : begin
-        _zz_1 = (io_jtag_tms ? `JtagState_defaultEncoding_IR_EXIT1 : `JtagState_defaultEncoding_IR_SHIFT);
-      end
-      `JtagState_defaultEncoding_IR_SHIFT : begin
-        _zz_1 = (io_jtag_tms ? `JtagState_defaultEncoding_IR_EXIT1 : `JtagState_defaultEncoding_IR_SHIFT);
-      end
-      `JtagState_defaultEncoding_IR_EXIT1 : begin
-        _zz_1 = (io_jtag_tms ? `JtagState_defaultEncoding_IR_UPDATE : `JtagState_defaultEncoding_IR_PAUSE);
-      end
-      `JtagState_defaultEncoding_IR_PAUSE : begin
-        _zz_1 = (io_jtag_tms ? `JtagState_defaultEncoding_IR_EXIT2 : `JtagState_defaultEncoding_IR_PAUSE);
-      end
-      `JtagState_defaultEncoding_IR_EXIT2 : begin
-        _zz_1 = (io_jtag_tms ? `JtagState_defaultEncoding_IR_UPDATE : `JtagState_defaultEncoding_IR_SHIFT);
-      end
-      `JtagState_defaultEncoding_IR_UPDATE : begin
-        _zz_1 = (io_jtag_tms ? `JtagState_defaultEncoding_DR_SELECT : `JtagState_defaultEncoding_IDLE);
-      end
-      `JtagState_defaultEncoding_DR_SELECT : begin
-        _zz_1 = (io_jtag_tms ? `JtagState_defaultEncoding_IR_SELECT : `JtagState_defaultEncoding_DR_CAPTURE);
-      end
-      `JtagState_defaultEncoding_DR_CAPTURE : begin
-        _zz_1 = (io_jtag_tms ? `JtagState_defaultEncoding_DR_EXIT1 : `JtagState_defaultEncoding_DR_SHIFT);
-      end
-      `JtagState_defaultEncoding_DR_SHIFT : begin
-        _zz_1 = (io_jtag_tms ? `JtagState_defaultEncoding_DR_EXIT1 : `JtagState_defaultEncoding_DR_SHIFT);
-      end
-      `JtagState_defaultEncoding_DR_EXIT1 : begin
-        _zz_1 = (io_jtag_tms ? `JtagState_defaultEncoding_DR_UPDATE : `JtagState_defaultEncoding_DR_PAUSE);
-      end
-      `JtagState_defaultEncoding_DR_PAUSE : begin
-        _zz_1 = (io_jtag_tms ? `JtagState_defaultEncoding_DR_EXIT2 : `JtagState_defaultEncoding_DR_PAUSE);
-      end
-      `JtagState_defaultEncoding_DR_EXIT2 : begin
-        _zz_1 = (io_jtag_tms ? `JtagState_defaultEncoding_DR_UPDATE : `JtagState_defaultEncoding_DR_SHIFT);
-      end
-      `JtagState_defaultEncoding_DR_UPDATE : begin
-        _zz_1 = (io_jtag_tms ? `JtagState_defaultEncoding_DR_SELECT : `JtagState_defaultEncoding_IDLE);
-      end
-      default : begin
-        _zz_1 = (io_jtag_tms ? `JtagState_defaultEncoding_RESET : `JtagState_defaultEncoding_IDLE);
-      end
-    endcase
-  end
-
-  assign jtag_tap_fsm_stateNext = _zz_1;
-  always @ (*) begin
-    jtag_tap_tdoUnbufferd = jtag_tap_bypass;
-    case(jtag_tap_fsm_state)
-      `JtagState_defaultEncoding_IR_SHIFT : begin
-        jtag_tap_tdoUnbufferd = jtag_tap_tdoIr;
-      end
-      `JtagState_defaultEncoding_DR_SHIFT : begin
-        jtag_tap_tdoUnbufferd = jtag_tap_tdoDr;
-      end
-      default : begin
-      end
-    endcase
-  end
-
-  always @ (*) begin
-    jtag_tap_tdoDr = 1'b0;
-    if(_zz_2)begin
-      jtag_tap_tdoDr = _zz_3[0];
-    end
-    if(_zz_4)begin
-      jtag_tap_tdoDr = 1'b0;
-    end
-    if(_zz_9)begin
-      jtag_tap_tdoDr = _zz_10[0];
     end
   end
 
-  assign jtag_tap_tdoIr = jtag_tap_instructionShift[0];
-  assign io_jtag_tdo = jtag_tap_tdoUnbufferd_regNext;
-  assign _zz_2 = (jtag_tap_instruction == 4'b0001);
-  assign _zz_6[0] = _zz_8;
-  assign _zz_11 = (! (_zz_4 && _zz_5));
+  always @ (*) begin
+    jtag_wrapper_sendShift = 1'b0;
+    if(jtag_wrapper_ctrl_enable)begin
+      if(jtag_wrapper_ctrl_shift)begin
+        if(! _zz_10) begin
+          jtag_wrapper_sendShift = 1'b1;
+        end
+      end
+    end
+  end
+
+  always @ (*) begin
+    jtag_wrapper_sendUpdate = 1'b0;
+    if(jtag_wrapper_ctrl_enable)begin
+      if(jtag_wrapper_ctrl_update)begin
+        jtag_wrapper_sendUpdate = 1'b1;
+      end
+    end
+  end
+
+  always @ (*) begin
+    jtag_wrapper_ctrl_tdo = 1'b0;
+    if(_zz_6)begin
+      jtag_wrapper_ctrl_tdo = 1'b0;
+    end
+    if(_zz_8)begin
+      jtag_wrapper_ctrl_tdo = _zz_7[0];
+    end
+  end
+
+  assign jtag_wrapper_ctrl_tdi = io_ctrl_tdi;
+  assign jtag_wrapper_ctrl_enable = io_ctrl_enable;
+  assign jtag_wrapper_ctrl_capture = io_ctrl_capture;
+  assign jtag_wrapper_ctrl_shift = io_ctrl_shift;
+  assign jtag_wrapper_ctrl_update = io_ctrl_update;
+  assign jtag_wrapper_ctrl_reset = io_ctrl_reset;
+  assign io_ctrl_tdo = jtag_wrapper_ctrl_tdo;
+  assign _zz_3[0] = _zz_5;
+  assign _zz_9 = (! (_zz_1 && _zz_2));
   assign system_cmd_valid = flowCCByToggle_1_io_output_valid;
   assign system_cmd_payload_last = flowCCByToggle_1_io_output_payload_last;
   assign system_cmd_payload_fragment = flowCCByToggle_1_io_output_payload_fragment;
-  assign _zz_4 = (jtag_tap_instruction == 4'b0010);
-  assign _zz_5 = (jtag_tap_fsm_state == `JtagState_defaultEncoding_DR_SHIFT);
-  assign _zz_9 = (jtag_tap_instruction == 4'b0011);
+  assign _zz_6 = (jtag_wrapper_header == 2'b00);
+  assign _zz_1 = 1'b1;
+  assign _zz_2 = (_zz_6 && jtag_wrapper_sendShift);
+  assign _zz_8 = (jtag_wrapper_header == 2'b01);
   always @ (posedge io_mainClk) begin
     if(io_remote_cmd_valid)begin
       system_rsp_valid <= 1'b0;
@@ -1959,50 +1864,32 @@ module JtagBridge (
     end
   end
 
-  always @ (posedge io_jtag_tck) begin
-    jtag_tap_fsm_state <= jtag_tap_fsm_stateNext;
-    jtag_tap_bypass <= io_jtag_tdi;
-    case(jtag_tap_fsm_state)
-      `JtagState_defaultEncoding_IR_CAPTURE : begin
-        jtag_tap_instructionShift <= jtag_tap_instruction;
+  always @ (posedge tck) begin
+    if(jtag_wrapper_ctrl_enable)begin
+      if(jtag_wrapper_ctrl_capture)begin
+        jtag_wrapper_done <= 1'b0;
+        jtag_wrapper_counter <= 1'b0;
       end
-      `JtagState_defaultEncoding_IR_SHIFT : begin
-        jtag_tap_instructionShift <= ({io_jtag_tdi,jtag_tap_instructionShift} >>> 1);
-      end
-      `JtagState_defaultEncoding_IR_UPDATE : begin
-        jtag_tap_instruction <= jtag_tap_instructionShift;
-      end
-      `JtagState_defaultEncoding_DR_SHIFT : begin
-        jtag_tap_instructionShift <= ({io_jtag_tdi,jtag_tap_instructionShift} >>> 1);
-      end
-      default : begin
-      end
-    endcase
-    if(_zz_2)begin
-      if((jtag_tap_fsm_state == `JtagState_defaultEncoding_DR_SHIFT))begin
-        _zz_3 <= ({io_jtag_tdi,_zz_3} >>> 1);
+      if(jtag_wrapper_ctrl_shift)begin
+        if(_zz_10)begin
+          jtag_wrapper_counter <= (jtag_wrapper_counter + 1'b1);
+          jtag_wrapper_header <= jtag_wrapper_headerNext;
+          if(_zz_11)begin
+            jtag_wrapper_done <= 1'b1;
+          end
+        end
       end
     end
-    if((jtag_tap_fsm_state == `JtagState_defaultEncoding_RESET))begin
-      _zz_3 <= 32'h10001fff;
-    end
-    if((jtag_tap_fsm_state == `JtagState_defaultEncoding_RESET))begin
-      jtag_tap_instruction <= 4'b0001;
-    end
-    _zz_7 <= (_zz_4 && _zz_5);
-    _zz_8 <= io_jtag_tdi;
-    if(_zz_9)begin
-      if((jtag_tap_fsm_state == `JtagState_defaultEncoding_DR_CAPTURE))begin
-        _zz_10 <= {{system_rsp_payload_data,system_rsp_payload_error},system_rsp_valid};
+    _zz_4 <= (_zz_1 && _zz_2);
+    _zz_5 <= jtag_wrapper_ctrl_tdi;
+    if(1'b1)begin
+      if(((jtag_wrapper_headerNext == 2'b01) && jtag_wrapper_sendCapture))begin
+        _zz_7 <= {{system_rsp_payload_data,system_rsp_payload_error},system_rsp_valid};
       end
-      if((jtag_tap_fsm_state == `JtagState_defaultEncoding_DR_SHIFT))begin
-        _zz_10 <= ({io_jtag_tdi,_zz_10} >>> 1);
+      if((_zz_8 && jtag_wrapper_sendShift))begin
+        _zz_7 <= ({jtag_wrapper_ctrl_tdi,_zz_7} >>> 1);
       end
     end
-  end
-
-  always @ (negedge io_jtag_tck) begin
-    jtag_tap_tdoUnbufferd_regNext <= jtag_tap_tdoUnbufferd;
   end
 
 
@@ -6957,7 +6844,7 @@ module FlowCCByToggle (
   output              io_output_valid,
   output              io_output_payload_last,
   output     [0:0]    io_output_payload_fragment,
-  input               io_jtag_tck,
+  input               tck,
   input               io_mainClk,
   input               resetCtrl_mainClkReset
 );
@@ -6988,7 +6875,7 @@ module FlowCCByToggle (
   assign io_output_valid = outputArea_flow_regNext_valid;
   assign io_output_payload_last = outputArea_flow_regNext_payload_last;
   assign io_output_payload_fragment = outputArea_flow_regNext_payload_fragment;
-  always @ (posedge io_jtag_tck) begin
+  always @ (posedge tck) begin
     if(io_input_valid)begin
       inputArea_target <= (! inputArea_target);
       inputArea_data_last <= io_input_payload_last;

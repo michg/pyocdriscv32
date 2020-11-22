@@ -2,6 +2,7 @@
 
 Generating with a pythonscript JTAG-sequences for the
 debug port of different RISCV32 cores:
+
 - [murax](https://github.com/SpinalHDL/VexRiscv)
 - [reve](https://github.com/atthecodeface/cdl_hardware)
 - [pulpissimo](https://github.com/aignacio/riscv_verilator_model)
@@ -25,4 +26,7 @@ Finally run dbgjtag.py:
 
 To use it on real hardware
 (with an [ARM-USB-TINY-H](https://www.olimex.com/Products/ARM/JTAG/ARM-USB-TINY-H/)):
-`python3 dbgjtag.py h pulp`
+`python3 dbgjtag.py f pulp`
+
+with an USB-Blaster and virtual JTAG:
+`python3 dbgjtag.py v murax`
