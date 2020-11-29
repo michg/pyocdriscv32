@@ -21,10 +21,10 @@ def inrange(value, bits):
     lower_limit = -(1 << (bits - 1))
     return value in range(lower_limit, upper_limit)  
 
-Archdata = namedtuple('Archdata', ['Ocd', 'membaseadr','bootadr']) 
-Muraxdata = Archdata(MuraxOCD, 0x80000000, 0x80000000 )
-Pulpdata = Archdata(PulpOCD, 0x30000000, 0x30000080) # 1C//3=tbnew2
-Revedata = Archdata(ReveOCD, 0x00000000, 0x0)  #ref=0x0,0
+Archdata = namedtuple('Archdata', ['Ocd', 'membaseadr','bootadr','irsize']) 
+Muraxdata = Archdata(MuraxOCD, 0x80000000, 0x80000000, 4)
+Pulpdata = Archdata(PulpOCD, 0x30000000, 0x30000080, 5) # 1C//3=tbnew2
+Revedata = Archdata(ReveOCD, 0x00000000, 0x0, 5)  #ref=0x0,0
 
 archmap = {
     'murax': Muraxdata,
@@ -123,9 +123,9 @@ class JtagOCDEngine():
         return data
         
     
-    def enablevirtual(self):
+    def write_vir(self, val):
         self.write_ir(BitSequence(value=VIR, length=10))
-        self.write_dr(BitSequence(value=(1<<VIRLEN)|VIR , length=VIRLEN+1))
+        self.write_dr(BitSequence(value=(1<<len(val))|int(val) , length=len(val)+1))
         self.write_ir(BitSequence(value=VDR, length=10))
     
     def shift_register(self, out):
@@ -166,10 +166,13 @@ if __name__ == '__main__':
     print("ID:%08x" %id)
     engine.go_idle()
     engine.capture_ir()
-    irlen = tool.detect_register_size()
     arch = archmap.get(argv[2], archmap['murax'])
+    if argv[1]!='v':
+        irlen = tool.detect_register_size()
+    else:
+        irlen = arch.irsize
     ocd = arch.Ocd(engine, irlen)
-    memadr = arch.membaseadr    
+    memadr = arch.membaseadr
     ocd.resetdm() 
     ocd.halt()
     ocd.writereg(5, 0x12345678)

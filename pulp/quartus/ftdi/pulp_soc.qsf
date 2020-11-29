@@ -1,0 +1,196 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 2019  Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions 
+# and other software and tools, and any partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Intel Program License 
+# Subscription Agreement, the Intel Quartus Prime License Agreement,
+# the Intel FPGA IP License Agreement, or other applicable license
+# agreement, including, without limitation, that your use is for
+# the sole purpose of programming logic devices manufactured by
+# Intel and sold by Intel or its authorized distributors.  Please
+# refer to the applicable agreement for further details, at
+# https://fpgasoftware.intel.com/eula.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus Prime
+# Version 18.1.1 Build 646 04/11/2019 SJ Lite Edition
+# Date created = 20:58:14  October 05, 2019
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		pulp_soc_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus Prime software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+set_global_assignment -name FAMILY "Cyclone IV E"
+set_global_assignment -name DEVICE EP4CE115F29C7
+set_global_assignment -name TOP_LEVEL_ENTITY riscv_soc
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 18.1.1
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "20:58:14  OCTOBER 05, 2019"
+set_global_assignment -name LAST_QUARTUS_VERSION "18.1.1 Lite Edition"
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
+set_global_assignment -name VERILOG_SHOW_LMF_MAPPING_MESSAGES OFF
+set_global_assignment -name SEARCH_PATH ../../tb/inc
+set_global_assignment -name SEARCH_PATH ../../ips/fpnew/src/common_cells/include/common_cells
+set_global_assignment -name SEARCH_PATH ../../ips/riscv/rtl/include
+set_global_assignment -name VERILOG_MACRO "SYNTHESIS=1"
+set_global_assignment -name VERILOG_MACRO "JTAG_BOOT=0"
+set_location_assignment PIN_Y2 -to clk_i
+set_location_assignment PIN_G12 -to rx_i
+set_location_assignment PIN_G9 -to tx_o
+set_location_assignment PIN_M23 -to reset_n
+set_location_assignment PIN_AB22 -to jtag_tms
+set_location_assignment PIN_AC15 -to jtag_tdi
+set_location_assignment PIN_Y17 -to jtag_tck
+set_location_assignment PIN_AB21 -to jtag_tdo
+set_global_assignment -name ENABLE_OCT_DONE OFF
+set_global_assignment -name ENABLE_CONFIGURATION_PINS OFF
+set_global_assignment -name ENABLE_BOOT_SEL_PIN OFF
+set_global_assignment -name USE_CONFIGURATION_DEVICE ON
+set_global_assignment -name CRC_ERROR_OPEN_DRAIN OFF
+set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -rise
+set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -fall
+set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -rise
+set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -fall
+set_global_assignment -name ENABLE_SIGNALTAP OFF
+set_global_assignment -name USE_SIGNALTAP_FILE stp1.stp
+set_global_assignment -name OPTIMIZATION_MODE "HIGH PERFORMANCE EFFORT"
+set_global_assignment -name VERILOG_MACRO "VERILATOR=0"
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/mpram/riscv_register_file.sv
+set_global_assignment -name VERILOG_FILE ../../ips/mpram/mrram.v
+set_global_assignment -name VERILOG_FILE ../../ips/mpram/mpram_xor.v
+set_global_assignment -name VERILOG_FILE ../../ips/mpram/mpram_wrp.v
+set_global_assignment -name VERILOG_FILE ../../ips/mpram/mpram_reg.v
+set_global_assignment -name VERILOG_FILE ../../ips/mpram/mpram_lvt_reg.v
+set_global_assignment -name VERILOG_FILE ../../ips/mpram/mpram_lvt_bin.v
+set_global_assignment -name VERILOG_FILE ../../ips/mpram/mpram_lvt_1ht.v
+set_global_assignment -name VERILOG_FILE ../../ips/mpram/mpram_gen.v
+set_global_assignment -name VERILOG_FILE ../../ips/mpram/mpram.v
+set_global_assignment -name VERILOG_FILE ../../ips/mpram/lvt_reg.v
+set_global_assignment -name VERILOG_FILE ../../ips/mpram/lvt_bin.v
+set_global_assignment -name VERILOG_FILE ../../ips/mpram/lvt_1ht.v
+set_global_assignment -name VERILOG_FILE ../../ips/mpram/dpram.v
+set_global_assignment -name SDC_FILE clocks.sdc
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/apb_uart_sv/apb_uart_sv.sv
+set_global_assignment -name SYSTEMVERILOG_FILE "../../verilator-model/boot_rom.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/apb_uart_sv/uart_tx.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/apb_uart_sv/uart_rx.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/apb_uart_sv/uart_interrupt.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/apb_uart_sv/io_generic_fifo.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/apb_uart_sv/apb_uart.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/utils/filter_oor.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../tb/wrappers/ri5cy_ahb_wrapper.sv
+set_global_assignment -name SYSTEMVERILOG_FILE "../../verilator-model/riscv_tb_pkg.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE "../../verilator-model/rstgen_bypass.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE "../../verilator-model/rstgen.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE "../../verilator-model/cdc_2phase.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/common_cells/src/lzc.sv
+set_global_assignment -name SYSTEMVERILOG_FILE "../../verilator-model/cluster_clock_gating.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE "../../ips/riscv-dbg/debug_rom/debug_rom.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/include/riscv_defines.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/include/riscv_config.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/include/apu_core_package.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/rr_arb_tree_fpu.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpnew_top.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpnew_rounding.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpnew_pkg.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpnew_opgroup_multifmt_slice.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpnew_opgroup_fmt_slice.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpnew_opgroup_block.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpnew_noncomp.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpnew_fma_multi.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpnew_fma.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpnew_divsqrt_multi.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpnew_classifier.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpnew_cast_multi.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/apb4_mux/rtl/verilog/apb_mux.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/apb_gpio/rtl/apb_gpio.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/ahb3lite_pkg/rtl/verilog/ahb3lite_pkg.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/ahb3lite_memory/rtl/verilog/ahb3lite_sram1rw.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/ahb3lite_interconnect/rtl/verilog/ahb3lite_interconnect_slave_port.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/ahb3lite_interconnect/rtl/verilog/ahb3lite_interconnect_master_port.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/ahb3lite_interconnect/rtl/verilog/ahb3lite_interconnect.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/ahb3lite_apb_bridge/rtl/verilog/ahb3lite_apb_bridge.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/utils/ri5cy_to_ahb.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/utils/ri5cy_ahb_wrapper.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/utils/pulp_clock_mux2.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/utils/cluster_clock_inverter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/utils/apb4_if.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/utils/ahb3lite_if.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/utils/ahb_to_ri5cy.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/utils/ahb_ri5cy_rom.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/utils/ahb_dummy.sv
+set_global_assignment -name SYSTEMVERILOG_FILE "../../verilator-model/fifo_v3.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE "../../verilator-model/fifo_v2.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE ../../tb/wrappers/riscv_soc.sv
+set_global_assignment -name VERILOG_FILE ../../tb/inc/config_soc.v
+set_global_assignment -name VERILOG_FILE ../../tb/inc/config_ri5cy.v
+set_global_assignment -name SYSTEMVERILOG_FILE "../../ips/riscv-dbg/src/dmi_jtag_tap.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE "../../ips/riscv-dbg/src/dmi_jtag.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE "../../ips/riscv-dbg/src/dmi_cdc.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE "../../ips/riscv-dbg/src/dm_top.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE "../../ips/riscv-dbg/src/dm_sba.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE "../../ips/riscv-dbg/src/dm_pkg.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE "../../ips/riscv-dbg/src/dm_mem.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE "../../ips/riscv-dbg/src/dm_csrs.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_prefetch_L0_buffer.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_prefetch_buffer.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_pmp.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_mult.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_load_store_unit.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_L0_buffer.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_int_controller.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_if_stage.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_id_stage.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_hwloop_regs.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_hwloop_controller.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_fetch_fifo.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_ex_stage.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_decoder.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_cs_registers.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_core.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_controller.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_compressed_decoder.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_apu_disp.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_alu_div.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_alu_basic.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/riscv_alu.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/riscv/rtl/register_file_test_wrap.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/memory/rtl/verilog/rl_ram_1rw_generic.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/memory/rtl/verilog/rl_ram_1rw.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/memory/rtl/verilog/rl_ram_1r1w_generic.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/memory/rtl/verilog/rl_ram_1r1w.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/memory/rtl/verilog/rl_queue.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpu_div_sqrt_mvp/hdl/preprocess_mvp.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpu_div_sqrt_mvp/hdl/nrbd_nrsc_mvp.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpu_div_sqrt_mvp/hdl/norm_div_sqrt_mvp.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpu_div_sqrt_mvp/hdl/iteration_div_sqrt_mvp.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpu_div_sqrt_mvp/hdl/div_sqrt_top_mvp.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpu_div_sqrt_mvp/hdl/div_sqrt_mvp_wrapper.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpu_div_sqrt_mvp/hdl/defs_div_sqrt_mvp.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../ips/fpnew/src/fpu_div_sqrt_mvp/hdl/control_mvp.sv
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

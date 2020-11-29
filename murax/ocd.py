@@ -37,7 +37,7 @@ class MuraxOCD:
             self._engine.go_idle()
             self._engine.change_state('capture_ir') 
             print("Enabling virtual..")
-            self._engine.enablevirtual()
+            self._engine.write_vir(0)
         
         
     def writecmd(self, adr, data, size, write):

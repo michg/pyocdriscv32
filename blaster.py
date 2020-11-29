@@ -59,22 +59,19 @@ class Blaster:
             raise JtagError('Expect a BitSequence')
         tdo = 0
         for val in tms:
-            if(self._last):
-                if(self.debug):
-                    print(">>Tmsout:" + bin(val))
+            if(self._last is not None):
                 if(should_read):
-                    tdo = self.readwritebit(val,1)
+                    if(self.debug):
+                        print(">>Tmsout:" + bin(self._last))
+                    tdo = self.readwritebit(val, int(self._last))
                     if(self.debug):
                         print(">>Tmsin:" + bin(tdo))
                 else:
-                    self.writebit(val, 1)
+                    if(self.debug):
+                        print(">>Tmsout:" + bin(self._last))
+                    self.writebit(val, int(self._last))
             else:
-                if(should_read):
-                    tdo = self.readwritebit(val,0)
-                    if(self.debug):
-                        print(">>Tmsin:" + bin(tdo))
-                else:
-                    self.writebit(val, 0)
+                self.writebit(val, 0)
             should_read = False
             self._last = None
         return BitSequence(tdo, 1)
