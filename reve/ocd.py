@@ -34,13 +34,15 @@ class ReveOCD:
     def __init__(self, engine, irlen):
         self._engine = engine
         self._irlen = irlen
-        if hasattr(engine,'virtual'):
+        if hasattr(engine._ctrl,'virtual'):
             self.virtual = engine._ctrl.virtual
+            self.write_ir = self._engine.write_vir
         else:
             self.virtual = False
+            self.write_ir = self._engine.write_ir
     
     def resetdm(self):
-        self._engine.write_ir(BitSequence(value = 0x10, length=self._irlen))
+        self.write_ir(BitSequence(value = 0x10, length=self._irlen))
         self._engine.write_dr(BitSequence(value = (3<<16), length = 32))
         self._engine.go_idle()
         self._engine.write_dr(BitSequence(value = 0, length = 32))
@@ -48,12 +50,12 @@ class ReveOCD:
         pass
    
     def writeapb(self, adr, data):
-        self._engine.write_ir(BitSequence(value = 0x11, length=self._irlen))
+        self.write_ir(BitSequence(value = 0x11, length=self._irlen))
         self._engine.write_dr(BitSequence(value = ((adr&0xffff)<<34)| 
         ((data&0xffffffff)<<2)|(2), length = 50))
     
     def readapb(self, adr):
-        self._engine.write_ir(BitSequence(value = 0x11, length=self._irlen))
+        self.write_ir(BitSequence(value = 0x11, length=self._irlen))
         self._engine.write_dr(BitSequence(value = ((adr&0xffff)<<34)|(1),
          length = 50))
         self._engine.go_idle()        
