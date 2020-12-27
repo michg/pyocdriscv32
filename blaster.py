@@ -5,6 +5,9 @@ TMS = 1<<1
 TDI = 1<<4
 TDO = 1<<6
 TCK = 1<<0
+BYTESHIFT = 1<<7
+DORDWR = 1<<6
+ENA = (1<<3) + (1<<5)
 
 class Blaster:
     def __init__(self, debug=False):
@@ -17,24 +20,39 @@ class Blaster:
         self.debug = debug
       
     def readwritebit(self, tms, tdi):
-        val = tms*TMS + tdi*TDI 
-        self.blaster.write_data([val])
-        val = tms*TMS + tdi*TDI + TCK + TDO
-        self.blaster.write_data([val])
+        val = ENA + tms*TMS + tdi*TDI 
+        self.blaster._write(bytes([val]))
+        val = ENA + tms*TMS + tdi*TDI + TCK + TDO
+        self.blaster._write(bytes([val]))
         rd = self.blaster.read_data_bytes(1, attempt=3)
         tdo = ord(rd) & 1
         return tdo 
 
     def writebit(self, tms, tdi):
-        val = tms*TMS + tdi*TDI 
-        self.blaster.write_data([val])
-        val = tms*TMS + tdi*TDI + TCK
-        self.blaster.write_data([val])
+        val = ENA + tms*TMS + tdi*TDI
+        self.blaster._write(bytes([val]))
+        val = ENA + tms*TMS + tdi*TDI + TCK
+        self.blaster._write(bytes([val]))
     
     def shiftinoutval(self, length, val):
         outval = 0
         if(self.debug):
             print(">>Out{2:d}:0x{0:x}={0:0{1}b}".format(val,length,length));
+        nbytes = length>>3
+        while nbytes>0:
+            self.blaster._write(bytes([ENA]))
+            valcmd = bytearray([BYTESHIFT | DORDWR | (nbytes&0x3F)])
+            len = (nbytes&0x3F) << 3
+            valbytes = (val & ((1 << len) - 1)).to_bytes(nbytes&0x3F, 'little')
+            valcmd.extend(valbytes)
+            self.blaster._write(valcmd)
+            rd = self.blaster.read_data_bytes(nbytes&0x3F, attempt=3)
+            outval += int.from_bytes(rd, 'little')
+            val >>= len
+            nbytes -= nbytes&0x3F
+            length -= len
+        if(self.debug):
+            print(">>Inbytes{2:d}:0x{0:x}={0:0{1}b}".format(outval,length,length))
         for i in range(length):
             bit = val & 1
             tdo = self.readwritebit(0, bit)
@@ -48,6 +66,17 @@ class Blaster:
     def shiftinval(self, length, val):
         if(self.debug):
             print(">>Out{2:d}:0x{0:x}={0:0{1}b}".format(val,length,length));
+        nbytes = length>>3
+        while nbytes>0:
+            self.blaster._write(bytes([ENA]))
+            valcmd = bytearray([BYTESHIFT | (nbytes&0x3F)])
+            len = (nbytes&0x3F) << 3
+            valbytes = (val & ((1 << len) - 1)).to_bytes(nbytes&0x3F, 'little')
+            valcmd.extend(valbytes)
+            self.blaster._write(valcmd)
+            val >>= len
+            nbytes -= nbytes&0x3F
+            length -= len
         for i in range(length):
             bit = val & 1
             tdo = self.writebit(0, bit)
