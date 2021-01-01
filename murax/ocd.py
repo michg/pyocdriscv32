@@ -26,6 +26,7 @@ class MuraxOCD:
     def __init__(self, engine, irlen):
         self._engine = engine
         self._irlen = irlen
+        self.lastwradr = None
         if hasattr(engine._ctrl,'virtual'):
             self.virtual = engine._ctrl.virtual
         else:
@@ -37,7 +38,7 @@ class MuraxOCD:
             self._engine.go_idle()
             self._engine.change_state('capture_ir') 
             print("Enabling virtual..")
-            self._engine.write_vir(0)
+            self._engine.write_vir(BitSequence(value = 0x0, length=1))
         
         
     def writecmd(self, adr, data, size, write):
@@ -105,18 +106,22 @@ class MuraxOCD:
             opcode =  ((val & 0xfff) << 20) + (regdst << 15) + (regdst << 7) +  0x13 #ADDI
             self.pushins(opcode) 
         
-        regdst = 2
-        if inrange(adr, 12):
-            opcode =  ((adr & 0xfff) << 20) + (regdst << 7) +  0x13 #ADDI
-            self.pushins(opcode)
+        if self.lastwradr is not None and inrange(adr-self.lastwradr, 12):
+            offset = adr - self.lastwradr
         else:
-            if (adr & 0x800) != 0:
-                adr += 0x1000
-            opcode =  (adr & 0xfffff000) + (regdst << 7) +  0x37 #LUI
-            self.pushins(opcode)
-            opcode =  ((adr & 0xfff) << 20) + (regdst << 15) + (regdst << 7) +  0x13 #ADDI
-            self.pushins(opcode)
-        opcode =  (1 << 20) + (2 << 15) + (2 << 12) +  0x23 #SW
+            offset = 0
+            regdst = 2
+            if inrange(adr, 12):
+                opcode =  ((adr & 0xfff) << 20) + (regdst << 7) +  0x13 #ADDI
+                self.pushins(opcode)
+            else:
+                if (adr & 0x800) != 0:
+                    adr += 0x1000
+                opcode =  (adr & 0xfffff000) + (regdst << 7) +  0x37 #LUI
+                self.pushins(opcode)
+                opcode =  ((adr & 0xfff) << 20) + (regdst << 15) + (regdst << 7) +  0x13 #ADDI
+                self.pushins(opcode)
+        opcode =  ((offset&0xFE0)<<20 ) + (1 << 20) + (2 << 15) + (2 << 12) + ((offset&0x1f) << 7)  +  0x23 #SW
         self.pushins(opcode)
     
     def readmem(self, adr):

@@ -39,27 +39,29 @@ class Blaster:
         if(self.debug):
             print(">>Out{2:d}:0x{0:x}={0:0{1}b}".format(val,length,length));
         nbytes = length>>3
-        while nbytes>0:
-            self.blaster._write(bytes([ENA]))
-            valcmd = bytearray([BYTESHIFT | DORDWR | (nbytes&0x3F)])
-            len = (nbytes&0x3F) << 3
-            valbytes = (val & ((1 << len) - 1)).to_bytes(nbytes&0x3F, 'little')
-            valcmd.extend(valbytes)
-            self.blaster._write(valcmd)
-            rd = self.blaster.read_data_bytes(nbytes&0x3F, attempt=3)
-            outval += int.from_bytes(rd, 'little')
-            val >>= len
-            nbytes -= nbytes&0x3F
-            length -= len
+        if nbytes>63:
+            raise Exception("length > 63 bytes")
+        self.blaster._write(bytes([ENA]))
+        valcmd = bytearray([BYTESHIFT | DORDWR | (nbytes&0x3F)])
+        txlen = (nbytes&0x3F) << 3
+        valbytes = (val & ((1 << txlen) - 1)).to_bytes(nbytes&0x3F, 'little')
+        valcmd.extend(valbytes)
+        self.blaster._write(valcmd)
+        rd = self.blaster.read_data_bytes(nbytes&0x3F, attempt=3)
+        rxlen = len(rd)
+        outval += int.from_bytes(rd, 'little')
+        val >>= txlen
         if(self.debug):
-            print(">>Inbytes{2:d}:0x{0:x}={0:0{1}b}".format(outval,length,length))
+            print(">>Inbytes{2:d}:0x{0:x}={0:0{1}b}".format(outval,rxlen*8,rxlen))
+        length -= txlen
+        
         for i in range(length):
             bit = val & 1
             tdo = self.readwritebit(0, bit)
             val >>= 1
-            outval += tdo<<i
+            outval += (tdo<<(i + rxlen*8))
         if(self.debug):
-            print(">>In{2:d}:0x{0:x}={0:0{1}b}".format(outval,length,length))
+            print(">>In{2:d}:0x{0:x}={0:0{1}b}".format(outval,(length+nbytes*8),length))
         return outval
         
     

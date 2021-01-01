@@ -39,6 +39,7 @@ class PulpOCD:
         self._engine = engine
         self._irlen = irlen
         self.currentir = None
+        self.lastwradr = None
         if hasattr(engine._ctrl,'virtual'):
             self.virtual = engine._ctrl.virtual
             self.write_ir = self._engine.write_vir
@@ -97,7 +98,8 @@ class PulpOCD:
     def resume(self):
         self.writeapb(PulpOCD.DMCONTROLREG, (1<<PulpOCD.RESUMEREQBIT) + (1<<PulpOCD.ACTIVEBIT))
         self._engine.go_idle()
-        self.writeapb(PulpOCD.DMCONTROLREG, (0<<PulpOCD.RESUMEREQBIT) + (1<<PulpOCD.ACTIVEBIT)) 
+        self.writeapb(PulpOCD.DMCONTROLREG, (0<<PulpOCD.RESUMEREQBIT) + (1<<PulpOCD.ACTIVEBIT))
+        self.lastwradr = None
     
     def readreg(self, regnr):
         debugregnr = regnr + 0x1000
@@ -137,9 +139,12 @@ class PulpOCD:
     
     def writebus(self, adr, val):
         WORDSIZE = 2
-        self.writeapb(PulpOCD.SYSTEMBUSCONTROLREG, (WORDSIZE<<17))
-        self.writeapb(PulpOCD.SYSTEMBUSADR0, adr)
-        self.writeapb(PulpOCD.SYSTEMBUSDATA0, val) 
+        AUTOINC = 16
+        if (self.lastwradr is None) or (self.lastwradr != (adr-4)): 
+            self.writeapb(PulpOCD.SYSTEMBUSCONTROLREG, (WORDSIZE<<17) + (1<<AUTOINC))
+            self.writeapb(PulpOCD.SYSTEMBUSADR0, adr)
+        self.writeapb(PulpOCD.SYSTEMBUSDATA0, val)
+        self.lastwradr = adr
     
     writemem = writebus
     

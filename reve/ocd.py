@@ -35,6 +35,7 @@ class ReveOCD:
         self._engine = engine
         self._irlen = irlen
         self.currentir = None
+        self.lastwradr = None
         if hasattr(engine._ctrl,'virtual'):
             self.virtual = engine._ctrl.virtual
             self.write_ir = self._engine.write_vir
@@ -83,7 +84,8 @@ class ReveOCD:
     def resume(self):
         self.writeapb(ReveOCD.DMCONTROLREG, (1<<ReveOCD.RESUMEREQBIT) + 1<<ReveOCD.ACTIVEBIT)
         self._engine.go_idle()
-        self.writeapb(ReveOCD.DMCONTROLREG, (0<<ReveOCD.RESUMEREQBIT) + 1<<ReveOCD.ACTIVEBIT) 
+        self.writeapb(ReveOCD.DMCONTROLREG, (0<<ReveOCD.RESUMEREQBIT) + 1<<ReveOCD.ACTIVEBIT)
+        self.lastwradr = None
     
     def readreg(self, regnr):
         debugregnr = regnr + 0x1000
@@ -125,18 +127,22 @@ class ReveOCD:
             opcode =  ((val & 0xfff) << 20) + (regdst << 15) + (regdst << 7) +  0x13 #ADDI
             self.pushins(opcode) 
         
-        regdst = 2
-        if inrange(adr, 12):
-            opcode =  ((adr & 0xfff) << 20) + (regdst << 7) +  0x13 #ADDI
-            self.pushins(opcode)
+        if self.lastwradr is not None and inrange(adr-self.lastwradr, 12):
+            offset = adr - self.lastwradr
         else:
-            if (adr & 0x800) != 0:
-                adr += 0x1000
-            opcode =  (adr & 0xfffff000) + (regdst << 7) +  0x37 #LUI
-            self.pushins(opcode)
-            opcode =  ((adr & 0xfff) << 20) + (regdst << 15) + (regdst << 7) +  0x13 #ADDI
-            self.pushins(opcode)
-        opcode =  (1 << 20) + (2 << 15) + (2 << 12) +  0x23 #SW
+            offset = 0
+            regdst = 2
+            if inrange(adr, 12):
+                opcode =  ((adr & 0xfff) << 20) + (regdst << 7) +  0x13 #ADDI
+                self.pushins(opcode)
+            else:
+                if (adr & 0x800) != 0:
+                    adr += 0x1000
+                opcode =  (adr & 0xfffff000) + (regdst << 7) +  0x37 #LUI
+                self.pushins(opcode)
+                opcode =  ((adr & 0xfff) << 20) + (regdst << 15) + (regdst << 7) +  0x13 #ADDI
+                self.pushins(opcode)
+        opcode =  ((offset&0xFE0)<<20 ) + (1 << 20) + (2 << 15) + (2 << 12) + ((offset&0x1f) << 7)  +  0x23 #SW
         self.pushins(opcode)
     
     def readmem(self, adr):
