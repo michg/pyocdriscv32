@@ -8,6 +8,7 @@ from pyftdi.ftdi import Ftdi
 from pyftdi.bits import BitSequence 
 from pyftdi.jtag import JtagStateMachine, JtagTool, JtagEngine
 from murax.ocd import MuraxOCD
+from saxon.ocd import SaxonOCD
 from pulp.ocd import PulpOCD
 from reve.ocd import ReveOCD
 from collections import namedtuple
@@ -23,11 +24,13 @@ def inrange(value, bits):
 
 Archdata = namedtuple('Archdata', ['Ocd', 'membaseadr','bootadr','irsize']) 
 Muraxdata = Archdata(MuraxOCD, 0x80000000, 0x80000000, 4)
+Saxondata = Archdata(SaxonOCD, 0x10A00000, 0x10A00000, 4)
 Pulpdata = Archdata(PulpOCD, 0x30000000, 0x30000080, 5) # 1C//3=tbnew2
 Revedata = Archdata(ReveOCD, 0x00000000, 0x0, 5)  #ref=0x0,0
 
 archmap = {
     'murax': Muraxdata,
+    'saxon': Saxondata,
     'pulp': Pulpdata,
     'reve': Revedata
     }
@@ -189,6 +192,8 @@ if __name__ == '__main__':
     print("MEM:%08x" %val)
     loadbinary(argv[2]+".bin",memadr)    
     ocd.setpc(arch.bootadr)
+    ocd.reset()
+    ocd.resetrelease()
     ocd.resume()
     time.sleep(5) 
     engine.close()

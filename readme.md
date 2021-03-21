@@ -4,6 +4,7 @@ Generating with a pythonscript JTAG-sequences for the
 debug port of different RISCV32 cores:
 
 - [murax](https://github.com/SpinalHDL/VexRiscv)
+- [saxonsoc](https://github.com/SpinalHDL/SaxonSoc)
 - [reve](https://github.com/atthecodeface/cdl_hardware)
 - [pulpissimo](https://github.com/aignacio/riscv_verilator_model)
 

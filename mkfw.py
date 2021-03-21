@@ -17,7 +17,7 @@ def get_sources(folder, extension):
 
 
 with open('report.html', 'w') as f:
-    archname = 'riscv'
+    archname = 'riscv:rva'
     if (len(argv)==4):
         archname +=':' + argv[3]
     arch = get_arch(archname)

@@ -10,6 +10,7 @@ from .instructions import isa, Align, Section
 from .rvc_instructions import rvcisa
 from .rvf_instructions import rvfisa, movf
 from .rvfx_instructions import rvfxisa
+from .rva_instructions import rvaisa
 from .registers import RiscvRegister, RiscvFRegister, gdb_registers, Register
 from .registers import R0, LR, SP, FP
 from .registers import R10, R11, R12
@@ -66,7 +67,7 @@ class RiscvAssembler(BaseAssembler):
 
 class RiscvArch(Architecture):
     name = "riscv"
-    option_names = ("rvc", "rvf","rvfx")
+    option_names = ("rvc", "rvf", "rvfx", "rva")
 
     def __init__(self, options=None):
         super().__init__(options=options)
@@ -86,7 +87,10 @@ class RiscvArch(Architecture):
             self.load = Lw
             self.regclass = register_classes_hwfp
         else:
-            self.isa = isa + data_isa
+            if self.has_option("rva"):
+                self.isa = isa + data_isa + rvaisa
+            else:
+                self.isa = isa + data_isa
             self.store = Sw
             self.load = Lw
             self.regclass = register_classes_swfp
